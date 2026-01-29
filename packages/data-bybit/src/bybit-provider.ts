@@ -40,13 +40,22 @@ function normalizeKlineItem(item: string[]): Candle {
 
 export class BybitDataProvider {
   private baseUrl: string;
+  private useProxy: boolean;
+  private proxyUrl?: string;
 
-  constructor(baseUrl: string = process.env.BYBIT_REST_BASE || 'https://api.bybit.com') {
+  constructor(
+    baseUrl: string = process.env.BYBIT_REST_BASE || 'https://api.bybit.com',
+    useProxy: boolean = false,
+    proxyUrl?: string
+  ) {
     this.baseUrl = baseUrl;
+    this.useProxy = useProxy;
+    this.proxyUrl = proxyUrl;
   }
 
   /**
    * Fetch kline data from Bybit REST API
+   * Nếu useProxy = true, sẽ gọi qua proxy route thay vì trực tiếp
    */
   async fetchKlines(params: BybitKlineParams): Promise<BybitKlineResponse> {
     const queryParams = new URLSearchParams({
@@ -58,6 +67,29 @@ export class BybitDataProvider {
       ...(params.limit && { limit: params.limit.toString() })
     });
 
+    // Nếu dùng proxy, gọi qua proxy route
+    if (this.useProxy && this.proxyUrl) {
+      const proxyUrl = `${this.proxyUrl}?${queryParams.toString()}`;
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(`Proxy error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
+      }
+
+      const data = await response.json() as BybitKlineResponse;
+      if (data.retCode !== 0) {
+        throw new Error(`Bybit API error: ${data.retMsg} (code: ${data.retCode})`);
+      }
+      return data;
+    }
+
+    // Direct call to Bybit API
     const url = `${this.baseUrl}/v5/market/kline?${queryParams.toString()}`;
 
     // Use fetch if available (Node 18+), otherwise use https module
@@ -67,12 +99,22 @@ export class BybitDataProvider {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+          'Accept-Language': 'en-US,en;q=0.9'
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Bybit API error: ${response.status} ${response.statusText}`);
+        // Try to get error details from response body
+        let errorBody = '';
+        try {
+          errorBody = await response.text();
+        } catch (e) {
+          // Ignore if can't read body
+        }
+        throw new Error(`Bybit API error: ${response.status} ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`);
       }
 
       data = await response.json() as BybitKlineResponse;
@@ -85,7 +127,10 @@ export class BybitDataProvider {
           path: urlObj.pathname + urlObj.search,
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9'
           }
         };
 
@@ -93,11 +138,15 @@ export class BybitDataProvider {
           let body = '';
           res.on('data', (chunk) => { body += chunk; });
           res.on('end', () => {
+            if (res.statusCode && res.statusCode >= 400) {
+              reject(new Error(`Bybit API error: ${res.statusCode} ${res.statusMessage} - ${body}`));
+              return;
+            }
             try {
               const parsed = JSON.parse(body) as BybitKlineResponse;
               resolve(parsed);
             } catch (e) {
-              reject(e);
+              reject(new Error(`Failed to parse response: ${e instanceof Error ? e.message : String(e)} - Body: ${body}`));
             }
           });
         });

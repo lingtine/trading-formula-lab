@@ -428,6 +428,9 @@ function ChartTab({
       </div>
     );
   }
+  const methodT = translations.method;
+  const formulas = methodT.formulas;
+
   return (
     <div>
       {chartWsError && (
@@ -442,6 +445,43 @@ function ChartTab({
         symbol="BTCUSDT"
         analysis={analysis ? { poi: analysis.poi, levels: analysis.levels } : undefined}
       />
+      <div className="card" style={{ marginTop: '20px' }}>
+        <div className="card-title">Công thức đang áp dụng trên biểu đồ</div>
+        <div className="card-content">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+            <span style={{ padding: '4px 8px', background: 'rgba(34,197,94,0.25)', borderRadius: '4px', fontSize: '12px' }}>OB↑ / FVG↑</span>
+            <span style={{ padding: '4px 8px', background: 'rgba(239,68,68,0.25)', borderRadius: '4px', fontSize: '12px' }}>OB↓ / FVG↓</span>
+            <span style={{ padding: '4px 8px', background: 'rgba(59,130,246,0.25)', borderRadius: '4px', fontSize: '12px' }}>EQH</span>
+            <span style={{ padding: '4px 8px', background: 'rgba(245,158,11,0.25)', borderRadius: '4px', fontSize: '12px' }}>EQL</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px', fontSize: '13px' }}>
+            <div style={{ padding: '10px', background: '#0a0a0a', borderRadius: '6px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>{formulas.swingDetection.title}</div>
+              <div style={{ color: '#888', fontSize: '12px' }}>{formulas.swingDetection.formula}</div>
+            </div>
+            <div style={{ padding: '10px', background: '#0a0a0a', borderRadius: '6px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>{formulas.bos.title}</div>
+              <div style={{ color: '#888', fontSize: '12px' }}>{formulas.bos.formula}</div>
+            </div>
+            <div style={{ padding: '10px', background: '#0a0a0a', borderRadius: '6px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>{formulas.choch.title}</div>
+              <div style={{ color: '#888', fontSize: '12px' }}>{formulas.choch.formula}</div>
+            </div>
+            <div style={{ padding: '10px', background: '#0a0a0a', borderRadius: '6px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>{formulas.liquidity.title}</div>
+              <div style={{ color: '#888', fontSize: '12px' }}>{formulas.liquidity.formula}</div>
+            </div>
+            <div style={{ padding: '10px', background: '#0a0a0a', borderRadius: '6px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>{formulas.orderBlock.title}</div>
+              <div style={{ color: '#888', fontSize: '12px' }}>{formulas.orderBlock.formula}</div>
+            </div>
+            <div style={{ padding: '10px', background: '#0a0a0a', borderRadius: '6px' }}>
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>{formulas.fvg.title}</div>
+              <div style={{ color: '#888', fontSize: '12px' }}>{formulas.fvg.formula}</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

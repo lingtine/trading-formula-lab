@@ -15,7 +15,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<any>(null);
-  const [realtime, setRealtime] = useState(false);
+  const [realtime, setRealtime] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [newCandleReceived, setNewCandleReceived] = useState(false);
   const [chartCandles, setChartCandles] = useState<Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>>([]);
@@ -48,7 +48,7 @@ export default function Home() {
         const res = await fetch(bybitUrl, { method: 'GET', headers: { Accept: 'application/json' } });
         if (!res.ok) throw new Error(`Bybit ${res.status}`);
         const data = await res.json();
-        if (data.retCode !== 0 || !data.result?.list?.length) throw new Error(data.retMsg || 'No candles');
+        if (data.retCode !== 0 || !data.result?.list?.length) throw new Error(data.retMsg || 'Không có nến');
         candles = data.result.list.reverse().map((item: string[]) => ({
           t: parseInt(item[0], 10),
           o: parseFloat(item[1]),
@@ -155,17 +155,17 @@ export default function Home() {
       });
 
       if (!candlesResponse.ok) {
-        throw new Error(`Failed to fetch candles: ${candlesResponse.status} ${candlesResponse.statusText}`);
+        throw new Error(`Không lấy được nến: ${candlesResponse.status} ${candlesResponse.statusText}`);
       }
 
       const candlesData = await candlesResponse.json();
 
       if (candlesData.retCode !== 0) {
-        throw new Error(`Bybit API error: ${candlesData.retMsg} (code: ${candlesData.retCode})`);
+        throw new Error(`Lỗi Bybit API: ${candlesData.retMsg} (mã: ${candlesData.retCode})`);
       }
 
       if (!candlesData.result || !candlesData.result.list || candlesData.result.list.length === 0) {
-        throw new Error('No candles returned from Bybit API');
+        throw new Error('Bybit API không trả về nến');
       }
 
       // Normalize candles: Bybit returns [startTime, open, high, low, close, volume, ...]
@@ -199,14 +199,14 @@ export default function Home() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(errorData.error || `Lỗi HTTP: ${response.status}`);
       }
 
       const result = await response.json();
       setAnalysis(result);
       setLastUpdate(new Date());
     } catch (err: any) {
-      setError(err.message || 'Failed to load analysis');
+      setError(err.message || 'Tải phân tích thất bại');
       console.error('Analysis error:', err);
     } finally {
       if (!silent) {
@@ -259,7 +259,7 @@ export default function Home() {
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '16px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '600', margin: 0 }}>
-          SMC Analysis - {analysis.context.symbol}
+          Phân tích SMC - {analysis.context.symbol}
         </h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
           {lastUpdate && (
@@ -274,7 +274,7 @@ export default function Home() {
               animation: 'pulse 1s ease-in-out',
               fontWeight: '600'
             }}>
-              ✨ Candle mới đã được cập nhật
+              ✨ Nến mới đã được cập nhật
             </span>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -423,7 +423,7 @@ function ChartTab({
     return (
       <div className="card">
         <div className="card-content">
-          <p style={{ color: '#888' }}>Chưa có dữ liệu nến. Thử refresh hoặc kiểm tra kết nối.</p>
+          <p style={{ color: '#888' }}>Chưa có dữ liệu nến. Thử làm mới hoặc kiểm tra kết nối.</p>
         </div>
       </div>
     );

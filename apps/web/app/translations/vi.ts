@@ -7,25 +7,25 @@ export const translations = {
     noData: 'Không có dữ liệu',
     close: 'Đóng',
     help: 'Hướng dẫn',
-    realtime: 'Realtime',
-    refresh: 'Refresh',
+    realtime: 'Thời gian thực',
+    refresh: 'Làm mới',
     lastUpdate: 'Cập nhật lần cuối',
   },
 
   // Tabs
   tabs: {
-    bias: 'Bias',
-    liquidity: 'Liquidity',
-    poi: 'POI',
-    setups: 'Setups',
+    bias: 'Xu hướng',
+    liquidity: 'Thanh khoản',
+    poi: 'Điểm quan tâm',
+    setups: 'Kịch bản',
     method: 'Phương pháp',
-    chart: 'Chart',
-    setup: 'Setup',
+    chart: 'Biểu đồ',
+    setup: 'Thiết lập',
   },
 
   // Bias Tab
   bias: {
-    title: 'Market Bias',
+    title: 'Xu hướng thị trường',
     decision: 'Quyết định',
     confidence: 'Độ tin cậy',
     keyReasons: 'Lý do chính',
@@ -71,10 +71,10 @@ export const translations = {
 
   // Liquidity Tab
   liquidity: {
-    title: 'Equilibrium Levels',
-    sweeps: 'Liquidity Sweeps',
-    noLevels: 'Không có equilibrium levels được phát hiện',
-    noSweeps: 'Không có liquidity sweeps được phát hiện',
+    title: 'Mức cân bằng',
+    sweeps: 'Quét thanh khoản',
+    noLevels: 'Không có mức cân bằng (EQH/EQL) được phát hiện',
+    noSweeps: 'Không có quét thanh khoản được phát hiện',
     status: {
       fresh: 'Mới',
       tested: 'Đã test',
@@ -82,10 +82,10 @@ export const translations = {
       invalid: 'Không hợp lệ',
     },
     types: {
-      EQH: 'Equilibrium High',
-      EQL: 'Equilibrium Low',
-      BUY_SIDE_LIQUIDITY: 'Buy Side Liquidity',
-      SELL_SIDE_LIQUIDITY: 'Sell Side Liquidity',
+      EQH: 'Mức cao cân bằng (EQH)',
+      EQL: 'Mức thấp cân bằng (EQL)',
+      BUY_SIDE_LIQUIDITY: 'Thanh khoản bên mua',
+      SELL_SIDE_LIQUIDITY: 'Thanh khoản bên bán',
     },
     help: {
       title: 'Hướng dẫn: Liquidity Analysis',
@@ -114,12 +114,12 @@ export const translations = {
 
   // POI Tab
   poi: {
-    title: 'Points of Interest',
-    count: 'POIs',
-    noPoi: 'Không có POIs được phát hiện',
+    title: 'Điểm quan tâm (POI)',
+    count: 'Số POI',
+    noPoi: 'Không có điểm quan tâm được phát hiện',
     types: {
-      OB: 'Order Block',
-      FVG: 'Fair Value Gap',
+      OB: 'Order Block (Khối lệnh)',
+      FVG: 'Fair Value Gap (Khoảng trống giá trị)',
       BREAKER: 'Breaker Block',
       MITIGATION: 'Mitigation Block',
     },
@@ -165,9 +165,9 @@ export const translations = {
 
   // Setups Tab
   setups: {
-    title: 'Trading Setups',
-    count: 'Setups',
-    noSetups: 'Không có trading setups khả dụng',
+    title: 'Kịch bản giao dịch',
+    count: 'Số kịch bản',
+    noSetups: 'Không có kịch bản giao dịch khả dụng',
     status: {
       title: 'Trạng thái',
       valid: 'Hợp lệ',
@@ -236,34 +236,34 @@ export const translations = {
     formulas: {
       title: 'Công thức đang áp dụng',
       swingDetection: {
-        title: 'Swing Detection (Fractal)',
-        formula: 'Fractal Length = 3',
+        title: 'Phát hiện Swing (Fractal)',
+        formula: 'Độ dài Fractal = 3',
         description: 'Phát hiện swing high/low bằng cách so sánh giá với 3 cây nến trước và sau. Một swing high được xác định khi high[i] > high[i-1, i-2, i+1, i+2].'
       },
       bos: {
-        title: 'Break of Structure (BOS)',
-        formula: 'BOS = Price breaks previous swing high/low',
-        description: 'BOS xảy ra khi giá phá vỡ swing high (bullish BOS) hoặc swing low (bearish BOS) trước đó, cho thấy sự thay đổi trong xu hướng.'
+        title: 'Phá cấu trúc (BOS)',
+        formula: 'BOS = Giá phá swing high/low trước đó',
+        description: 'BOS xảy ra khi giá phá vỡ swing high (BOS tăng) hoặc swing low (BOS giảm) trước đó, cho thấy sự thay đổi trong xu hướng.'
       },
       choch: {
-        title: 'Change of Character (CHoCH)',
-        formula: 'CHoCH = BOS after opposite BOS',
-        description: 'CHoCH là sự đảo chiều của xu hướng. Sau một bearish BOS, bullish CHoCH xảy ra khi giá phá vỡ swing high. Ngược lại, sau bullish BOS, bearish CHoCH xảy ra khi giá phá vỡ swing low.'
+        title: 'Đổi tính (CHoCH)',
+        formula: 'CHoCH = BOS sau BOS ngược chiều',
+        description: 'CHoCH là sự đảo chiều xu hướng. Sau BOS giảm, CHoCH tăng xảy ra khi giá phá swing high. Ngược lại, sau BOS tăng, CHoCH giảm xảy ra khi giá phá swing low.'
       },
       liquidity: {
-        title: 'Liquidity Sweep',
-        formula: 'Sweep = Wick beyond level + Close back inside',
-        description: 'Liquidity sweep xảy ra khi giá tạo wick vượt qua một mức hỗ trợ/kháng cự (EQH/EQL) nhưng sau đó đóng lại bên trong, cho thấy thanh khoản đã bị "sweep".'
+        title: 'Quét thanh khoản',
+        formula: 'Sweep = Wick vượt mức + Đóng lại bên trong',
+        description: 'Quét thanh khoản xảy ra khi giá tạo wick vượt mức hỗ trợ/kháng cự (EQH/EQL) rồi đóng lại bên trong, cho thấy thanh khoản đã bị quét.'
       },
       orderBlock: {
         title: 'Order Block (OB)',
-        formula: 'OB = Last opposite candle before displacement',
-        description: 'Order Block là cây nến cuối cùng trước một động thái giá mạnh (displacement). OB bullish là cây nến giảm cuối cùng trước khi giá tăng mạnh.'
+        formula: 'OB = Nến ngược chiều cuối cùng trước displacement',
+        description: 'Order Block là nến cuối cùng trước một đợt giá mạnh (displacement). OB tăng là nến giảm cuối cùng trước khi giá tăng mạnh.'
       },
       fvg: {
-        title: 'Fair Value Gap (FVG)',
-        formula: 'FVG = Gap between candle bodies',
-        description: 'FVG là khoảng trống giữa các cây nến, nơi không có giao dịch nào xảy ra. FVG thường được "lấp đầy" sau đó.'
+        title: 'Khoảng trống giá trị (FVG)',
+        formula: 'FVG = Khoảng trống giữa body nến',
+        description: 'FVG là khoảng trống giữa các nến, nơi không có giao dịch. FVG thường được lấp đầy sau đó.'
       }
     },
     system: {
@@ -273,16 +273,16 @@ export const translations = {
         description: 'Hệ thống được xây dựng theo mô hình modular với các thành phần độc lập:',
         components: [
           {
-            name: 'Data Provider (Bybit)',
+            name: 'Nguồn dữ liệu (Bybit)',
             description: 'Lấy dữ liệu nến từ Bybit V5 API (REST + WebSocket)'
           },
           {
             name: 'SMC Engine',
-            description: 'Phân tích dữ liệu và tạo signals, levels, POIs, setups'
+            description: 'Phân tích dữ liệu và tạo tín hiệu, mức, POI, kịch bản'
           },
           {
-            name: 'Web UI',
-            description: 'Hiển thị kết quả phân tích với realtime updates'
+            name: 'Giao diện Web',
+            description: 'Hiển thị kết quả phân tích với cập nhật thời gian thực'
           }
         ]
       },
@@ -309,8 +309,8 @@ export const translations = {
           'Next.js 14 (App Router)',
           'pnpm workspace (monorepo)',
           'Bybit V5 API',
-          'WebSocket cho realtime',
-          'AJV cho schema validation'
+          'WebSocket cho thời gian thực',
+          'AJV cho kiểm tra schema'
         ]
       },
       currentConfig: {

@@ -124,7 +124,7 @@ export function SetupTab({
     try {
       const key = 'smc_my_preset';
       localStorage.setItem(key, JSON.stringify({ presetId, params: setupParams }));
-      setSavedMessage('Đã lưu vào "My preset".');
+      setSavedMessage('Đã lưu thành preset của tôi.');
       setTimeout(() => setSavedMessage(null), 3000);
     } catch (e) {
       setSavedMessage('Lưu thất bại.');
@@ -192,18 +192,18 @@ export function SetupTab({
           Thiết lập
         </h3>
         <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#666' }}>
-          Chọn preset hoặc tùy chỉnh Advanced, sau đó bấm <strong>Áp dụng</strong>.
+          Chọn bộ cài sẵn hoặc tùy chỉnh nâng cao, sau đó bấm <strong>Áp dụng</strong>.
         </p>
         <div className="card" style={{ marginBottom: '20px' }}>
-          <div className="card-title">Preset</div>
+          <div className="card-title">Bộ cài sẵn</div>
           <div className="card-content">
             <p style={{ color: '#888', marginBottom: '12px', fontSize: '13px' }}>
-              Chọn preset phù hợp với phong cách giao dịch.
+              Chọn bộ cài sẵn phù hợp với phong cách giao dịch.
             </p>
             <select
               value={presetId || ''}
               onChange={(e) => applyPreset(e.target.value || null)}
-              aria-label="Chọn preset"
+              aria-label="Chọn bộ cài sẵn"
               style={{
                 width: '100%',
                 maxWidth: '400px',
@@ -251,7 +251,7 @@ export function SetupTab({
 
         <div className="card" style={{ marginBottom: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div className="card-title">Advanced (tùy chỉnh chi tiết)</div>
+            <div className="card-title">Nâng cao (tùy chỉnh chi tiết)</div>
             <button
               type="button"
               onClick={() => setAdvancedOpen(!advancedOpen)}
@@ -265,7 +265,7 @@ export function SetupTab({
                 fontSize: '14px',
               }}
             >
-              {advancedOpen ? 'Thu gọn' : 'Mở Advanced'}
+              {advancedOpen ? 'Thu gọn' : 'Mở nâng cao'}
             </button>
           </div>
           {advancedOpen && (

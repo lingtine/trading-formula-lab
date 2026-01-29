@@ -188,7 +188,7 @@ export function RealtimeChart({
             color: isConnected ? '#22c55e' : '#6b7280',
           }}
         >
-          WS: {isConnected ? 'Connected' : 'Disconnected'}
+          WS: {isConnected ? 'Đã kết nối' : 'Chưa kết nối'}
         </span>
         <span
           style={{
@@ -196,7 +196,7 @@ export function RealtimeChart({
             color: candleStatus === 'forming' ? '#f59e0b' : '#6b7280',
           }}
         >
-          Candle: {candleStatus === 'forming' ? 'forming' : 'closed'}
+          Nến: {candleStatus === 'forming' ? 'đang hình thành' : 'đã đóng'}
         </span>
       </div>
       <div ref={containerRef} style={{ width: '100%', minHeight: '480px' }} />

@@ -16,7 +16,7 @@ export interface PresetDef {
 export const PRESETS: PresetDef[] = [
   {
     id: 'btc_m15_conservative',
-    name: 'BTC Futures M15 – Conservative',
+    name: 'BTC Futures M15 – Bảo thủ',
     description: 'Ít tín hiệu, chắc chắn.',
     timeframe: 'M15',
     params: {
@@ -34,7 +34,7 @@ export const PRESETS: PresetDef[] = [
   },
   {
     id: 'btc_m15_aggressive',
-    name: 'BTC Futures M15 – Aggressive',
+    name: 'BTC Futures M15 – Tích cực',
     description: 'Nhiều tín hiệu hơn.',
     timeframe: 'M15',
     params: {
@@ -53,7 +53,7 @@ export const PRESETS: PresetDef[] = [
   {
     id: 'btc_m5_scalping',
     name: 'BTC Futures M5 – Scalping',
-    description: 'Khung M5, nhạy hơn.',
+    description: 'Khung M5, nhạy hơn, nhiều tín hiệu.',
     timeframe: 'M5',
     params: {
       swingLen: 2,
@@ -74,7 +74,7 @@ export const PRESETS: PresetDef[] = [
   {
     id: 'btc_swing_h1h4',
     name: 'BTC Swing H1/H4',
-    description: 'Swing trade, khung H1/H4.',
+    description: 'Giao dịch swing, khung H1/H4.',
     timeframe: 'H1',
     params: {
       swingLen: 5,

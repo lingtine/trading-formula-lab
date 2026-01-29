@@ -1,65 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Force dynamic rendering - route sử dụng request headers
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 // Dynamic import to avoid bundling issues with Node.js modules
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // Import providers dynamically
-    const { BybitDataProvider } = await import('../../../../../packages/data-bybit/src/bybit-provider');
+    // Import SMC engine
     const { SmcEngine } = await import('../../../../../packages/engine-smc/src/smc-engine');
 
-    // Load environment variables
-    if (typeof process !== 'undefined' && process.env) {
-      // Environment variables should be available
-    }
+    // Nhận candles từ client
+    const body = await request.json();
+    const { candles, symbol = 'BTCUSDT', category = 'linear', timeframe = 'M15' } = body;
 
-    // Fetch candles - dùng proxy nếu đang ở Vercel để tránh bị chặn IP
-    const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
-    let proxyUrl: string | undefined;
-
-    if (isVercel) {
-      // Lấy URL từ request headers hoặc env
-      const host = request.headers.get('host') || process.env.VERCEL_URL;
-      const protocol = request.headers.get('x-forwarded-proto') || 'https';
-      if (host) {
-        proxyUrl = `${protocol}://${host}/api/bybit-proxy`;
-      }
-    }
-
-    // Thử fetch candles với fallback: proxy -> direct
-    let candles;
-    let provider = new BybitDataProvider(
-      undefined, // baseUrl - dùng default
-      !!proxyUrl, // useProxy
-      proxyUrl // proxyUrl
-    );
-
-    try {
-      const result = await provider.fetchCandles({
-        limit: 200
-      });
-      candles = result.candles;
-    } catch (proxyError: any) {
-      // Nếu proxy fail và đang dùng proxy, thử direct call
-      if (proxyUrl && (proxyError.message?.includes('403') || proxyError.message?.includes('Forbidden'))) {
-        console.warn('Proxy failed, trying direct call:', proxyError.message);
-        provider = new BybitDataProvider(); // Direct call, không dùng proxy
-        const result = await provider.fetchCandles({
-          limit: 200
-        });
-        candles = result.candles;
-      } else {
-        throw proxyError;
-      }
+    if (!candles || !Array.isArray(candles) || candles.length === 0) {
+      return NextResponse.json(
+        { error: 'Invalid candles data. Expected an array of candles.' },
+        { status: 400 }
+      );
     }
 
     // Run SMC engine
     const engine = new SmcEngine({
-      symbol: 'BTCUSDT',
-      category: 'linear',
-      timeframe: 'M15'
+      symbol,
+      category,
+      timeframe: timeframe as any
     });
 
     const result = await engine.process(candles);
@@ -79,4 +44,15 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// GET method - deprecated, chỉ để backward compatibility
+export async function GET(request: NextRequest) {
+  return NextResponse.json(
+    {
+      error: 'Please use POST method and send candles data from client-side. Server-side fetching is blocked by CloudFront.',
+      message: 'Fetch candles from browser and POST to this endpoint with { candles, symbol, category, timeframe }'
+    },
+    { status: 405 }
+  );
 }

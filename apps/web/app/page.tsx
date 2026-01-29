@@ -50,11 +50,67 @@ export default function Home() {
       }
       setError(null);
 
-      // Call API route
-      const response = await fetch('/api/analyze');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Fetch candles từ Bybit trực tiếp từ browser (tránh bị CloudFront chặn)
+      const symbol = 'BTCUSDT';
+      const category = 'linear';
+      const interval = '15'; // M15
+      const limit = 200;
+
+      const bybitUrl = `https://api.bybit.com/v5/market/kline?category=${category}&symbol=${symbol}&interval=${interval}&limit=${limit}`;
+
+      const candlesResponse = await fetch(bybitUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!candlesResponse.ok) {
+        throw new Error(`Failed to fetch candles: ${candlesResponse.status} ${candlesResponse.statusText}`);
       }
+
+      const candlesData = await candlesResponse.json();
+
+      if (candlesData.retCode !== 0) {
+        throw new Error(`Bybit API error: ${candlesData.retMsg} (code: ${candlesData.retCode})`);
+      }
+
+      if (!candlesData.result || !candlesData.result.list || candlesData.result.list.length === 0) {
+        throw new Error('No candles returned from Bybit API');
+      }
+
+      // Normalize candles: Bybit returns [startTime, open, high, low, close, volume, ...]
+      // Reverse để có chronological order (oldest first)
+      const candles = candlesData.result.list
+        .reverse()
+        .map((item: string[]) => ({
+          t: parseInt(item[0], 10), // startTime (epoch ms)
+          o: parseFloat(item[1]),   // openPrice
+          h: parseFloat(item[2]),   // highPrice
+          l: parseFloat(item[3]),   // lowPrice
+          c: parseFloat(item[4]),   // closePrice
+          v: parseFloat(item[5])    // volume
+        }));
+
+      // Gửi candles lên server để chạy SMC engine
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          candles,
+          symbol,
+          category,
+          timeframe: 'M15'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
       const result = await response.json();
       setAnalysis(result);
       setLastUpdate(new Date());

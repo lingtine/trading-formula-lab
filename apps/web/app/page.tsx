@@ -391,6 +391,7 @@ export default function Home() {
             setupParams={setupParams}
             onPresetChange={setPresetId}
             onParamsChange={setSetupParams}
+            onApply={() => loadAnalysis()}
             analysis={analysis}
           />
         )}

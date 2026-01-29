@@ -28,6 +28,7 @@ interface SetupTabProps {
   setupParams: Record<string, number | string | boolean>;
   onPresetChange: (id: string | null) => void;
   onParamsChange: (params: Record<string, number | string | boolean>) => void;
+  onApply?: () => void;
   analysis?: any;
 }
 
@@ -36,6 +37,7 @@ export function SetupTab({
   setupParams,
   onPresetChange,
   onParamsChange,
+  onApply,
   analysis,
 }: SetupTabProps) {
   const [schema, setSchema] = useState<ParamSchemaItem[]>([]);
@@ -133,54 +135,70 @@ export function SetupTab({
     return <div className="loading">Đang tải cấu hình...</div>;
   }
 
-  const leftColumn = (
-    <div style={{ width: '280px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {analysis?.diagnostics?.params && (
-        <div className="card" style={{ marginBottom: 0 }}>
-          <div className="card-title">Tham số đã áp dụng</div>
-          <div className="card-content">
-            <pre style={{ fontSize: '11px', color: '#888', overflow: 'auto', maxHeight: '320px', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-              {JSON.stringify(analysis.diagnostics.params, null, 2)}
-            </pre>
-          </div>
-        </div>
-      )}
-      {analysis?.diagnostics?.warnings?.length > 0 && (
-        <div className="card" style={{ marginBottom: 0 }}>
-          <div className="card-title">Cảnh báo</div>
-          <div className="card-content">
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {analysis.diagnostics.warnings.map((w: string, i: number) => (
-                <li key={i} style={{ marginBottom: '6px', fontSize: '13px', color: '#f59e0b' }}>
-                  {w}
+  const hasResult = analysis?.diagnostics?.params != null;
+  const hasWarnings = analysis?.diagnostics?.warnings?.length > 0;
+
+  const resultSection = (
+    <section style={{ flex: '0 0 300px', minWidth: '280px', maxWidth: '340px' }}>
+      <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '600', color: '#e5e5e5' }}>
+        Kết quả áp dụng
+      </h3>
+      <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#666' }}>
+        Tham số và cảnh báo từ lần chạy phân tích gần nhất.
+      </p>
+      {hasResult ? (
+        <div className="card" style={{ marginBottom: '12px' }}>
+          <div className="card-title" style={{ fontSize: '13px' }}>Tham số engine đã dùng</div>
+          <div className="card-content" style={{ paddingTop: '8px' }}>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '12px', lineHeight: 1.6 }}>
+              {Object.entries(analysis.diagnostics.params).map(([key, val]) => (
+                <li key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ color: '#888', wordBreak: 'break-word' }}>{key}</span>
+                  <span style={{ color: '#c4c4c4', flexShrink: 0 }}>{String(val)}</span>
                 </li>
               ))}
             </ul>
           </div>
         </div>
-      )}
-      {(!analysis?.diagnostics?.params && (!analysis?.diagnostics?.warnings || analysis.diagnostics.warnings.length === 0)) && (
-        <div className="card" style={{ marginBottom: 0 }}>
-          <div className="card-title">Tham số đã áp dụng</div>
+      ) : (
+        <div className="card" style={{ marginBottom: '12px' }}>
           <div className="card-content">
             <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
-              Chạy phân tích (Refresh hoặc mở Chart) để xem tham số engine đã dùng.
+              Bấm <strong>Áp dụng</strong> bên cạnh để chạy phân tích và xem tham số tại đây.
             </p>
           </div>
         </div>
       )}
-    </div>
+      {hasWarnings && (
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div className="card-title" style={{ fontSize: '13px' }}>Cảnh báo</div>
+          <div className="card-content">
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '12px' }}>
+              {analysis.diagnostics.warnings.map((w: string, i: number) => (
+                <li key={i} style={{ marginBottom: '6px', color: '#f59e0b' }}>• {w}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </section>
   );
 
   return (
-    <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-      {leftColumn}
-      <div style={{ flex: 1, minWidth: '320px', maxWidth: '720px' }}>
+    <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      {/* Cột trái: Thiết lập (Preset + Advanced) */}
+      <section style={{ flex: 1, minWidth: '320px', maxWidth: '640px' }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '600', color: '#e5e5e5' }}>
+          Thiết lập
+        </h3>
+        <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#666' }}>
+          Chọn preset hoặc tùy chỉnh Advanced, sau đó bấm <strong>Áp dụng</strong>.
+        </p>
         <div className="card" style={{ marginBottom: '20px' }}>
           <div className="card-title">Preset</div>
           <div className="card-content">
-            <p style={{ color: '#888', marginBottom: '12px', fontSize: '14px' }}>
-              Chọn preset phù hợp với phong cách giao dịch. Engine sẽ dùng bộ tham số tương ứng.
+            <p style={{ color: '#888', marginBottom: '12px', fontSize: '13px' }}>
+              Chọn preset phù hợp với phong cách giao dịch.
             </p>
             <select
               value={presetId || ''}
@@ -209,12 +227,31 @@ export function SetupTab({
                 {presets.find((p) => p.id === presetId)?.description}
               </p>
             )}
+            {onApply && (
+              <button
+                type="button"
+                onClick={onApply}
+                style={{
+                  marginTop: '16px',
+                  padding: '12px 24px',
+                  background: '#2563eb',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
+              >
+                Áp dụng
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: '20px' }}>
+        <div className="card" style={{ marginBottom: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div className="card-title">Advanced</div>
+            <div className="card-title">Advanced (tùy chỉnh chi tiết)</div>
             <button
               type="button"
               onClick={() => setAdvancedOpen(!advancedOpen)}
@@ -339,7 +376,10 @@ export function SetupTab({
             </div>
           )}
         </div>
-      </div>
+      </section>
+
+      {/* Cột phải: Kết quả áp dụng */}
+      {resultSection}
     </div>
   );
 }

@@ -133,174 +133,21 @@ export function SetupTab({
     return <div className="loading">Đang tải cấu hình...</div>;
   }
 
-  return (
-    <div style={{ maxWidth: '720px' }}>
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <div className="card-title">Preset</div>
-        <div className="card-content">
-          <p style={{ color: '#888', marginBottom: '12px', fontSize: '14px' }}>
-            Chọn preset phù hợp với phong cách giao dịch. Engine sẽ dùng bộ tham số tương ứng.
-          </p>
-          <select
-            value={presetId || ''}
-            onChange={(e) => applyPreset(e.target.value || null)}
-            style={{
-              width: '100%',
-              maxWidth: '400px',
-              padding: '10px 12px',
-              background: '#1a1a1a',
-              border: '1px solid #333',
-              borderRadius: '6px',
-              color: '#fff',
-              fontSize: '14px',
-            }}
-          >
-            <option value="">-- Mặc định (schema) --</option>
-            {presets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          {presetId && presets.find((p) => p.id === presetId) && (
-            <p style={{ marginTop: '8px', fontSize: '13px', color: '#888' }}>
-              {presets.find((p) => p.id === presetId)?.description}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div className="card-title">Advanced</div>
-          <button
-            type="button"
-            onClick={() => setAdvancedOpen(!advancedOpen)}
-            style={{
-              padding: '8px 16px',
-              background: advancedOpen ? '#2a2a2a' : '#1a3a5c',
-              border: '1px solid #3a3a3a',
-              borderRadius: '6px',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            {advancedOpen ? 'Thu gọn' : 'Mở Advanced'}
-          </button>
-        </div>
-        {advancedOpen && (
-          <div className="card-content" style={{ paddingTop: '8px' }}>
-            <p style={{ color: '#888', marginBottom: '16px', fontSize: '13px' }}>
-              Chỉnh từng tham số. Giới hạn min/max được áp dụng để không phá engine.
-            </p>
-            {groups.map((gr) => {
-              const items = schema.filter((p) => p.group === gr.id);
-              if (items.length === 0) return null;
-              return (
-                <div key={gr.id} style={{ marginBottom: '24px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <span style={{ fontWeight: '600', fontSize: '15px' }}>{gr.label}</span>
-                    <button
-                      type="button"
-                      onClick={() => resetGroupToPreset(gr.id)}
-                      style={{
-                        padding: '4px 10px',
-                        background: 'transparent',
-                        border: '1px solid #444',
-                        borderRadius: '4px',
-                        color: '#888',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                      }}
-                    >
-                      Reset to preset
-                    </button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {items.map((item) => (
-                      <div key={item.key} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-                        <label style={{ flex: '1 1 200px', fontSize: '14px' }} title={item.help}>
-                          {item.label}
-                        </label>
-                        {item.type === 'number' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 240px' }}>
-                            <input
-                              type="range"
-                              min={item.min}
-                              max={item.max}
-                              step={item.step ?? 0.01}
-                              value={Number(getValue(item.key))}
-                              onChange={(e) => setValue(item.key, Number(e.target.value))}
-                              style={{ flex: 1, minWidth: '100px' }}
-                            />
-                            <span style={{ minWidth: '48px', fontSize: '13px', color: '#aaa' }}>
-                              {typeof getValue(item.key) === 'number' && Number(getValue(item.key)) % 1 !== 0
-                                ? Number(getValue(item.key)).toFixed(2)
-                                : getValue(item.key)}
-                            </span>
-                          </div>
-                        )}
-                        {item.type === 'select' && (
-                          <select
-                            value={String(getValue(item.key))}
-                            onChange={(e) => setValue(item.key, e.target.value)}
-                            style={{
-                              padding: '6px 10px',
-                              background: '#1a1a1a',
-                              border: '1px solid #333',
-                              borderRadius: '4px',
-                              color: '#fff',
-                              fontSize: '13px',
-                              minWidth: '140px',
-                            }}
-                          >
-                            {item.options?.map((o) => (
-                              <option key={o.value} value={o.value}>
-                                {o.label}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        {item.type === 'boolean' && (
-                          <input
-                            type="checkbox"
-                            checked={Boolean(getValue(item.key))}
-                            onChange={(e) => setValue(item.key, e.target.checked)}
-                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button
-                type="button"
-                onClick={saveAsMyPreset}
-                style={{
-                  padding: '8px 16px',
-                  background: '#1a3a5c',
-                  border: '1px solid #2a4a6c',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                }}
-              >
-                Save as my preset
-              </button>
-              {savedMessage && <span style={{ fontSize: '13px', color: '#22c55e' }}>{savedMessage}</span>}
-            </div>
+  const leftColumn = (
+    <div style={{ width: '280px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {analysis?.diagnostics?.params && (
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div className="card-title">Tham số đã áp dụng</div>
+          <div className="card-content">
+            <pre style={{ fontSize: '11px', color: '#888', overflow: 'auto', maxHeight: '320px', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+              {JSON.stringify(analysis.diagnostics.params, null, 2)}
+            </pre>
           </div>
-        )}
-      </div>
-
+        </div>
+      )}
       {analysis?.diagnostics?.warnings?.length > 0 && (
-        <div className="card" style={{ marginTop: '16px' }}>
-          <div className="card-title">Warnings</div>
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div className="card-title">Cảnh báo</div>
           <div className="card-content">
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {analysis.diagnostics.warnings.map((w: string, i: number) => (
@@ -312,17 +159,187 @@ export function SetupTab({
           </div>
         </div>
       )}
-
-      {analysis?.diagnostics?.params && (
-        <div className="card" style={{ marginTop: '16px' }}>
-          <div className="card-title">Params đã resolve</div>
+      {(!analysis?.diagnostics?.params && (!analysis?.diagnostics?.warnings || analysis.diagnostics.warnings.length === 0)) && (
+        <div className="card" style={{ marginBottom: 0 }}>
+          <div className="card-title">Tham số đã áp dụng</div>
           <div className="card-content">
-            <pre style={{ fontSize: '12px', color: '#888', overflow: 'auto', maxHeight: '200px' }}>
-              {JSON.stringify(analysis.diagnostics.params, null, 2)}
-            </pre>
+            <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>
+              Chạy phân tích (Refresh hoặc mở Chart) để xem tham số engine đã dùng.
+            </p>
           </div>
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      {leftColumn}
+      <div style={{ flex: 1, minWidth: '320px', maxWidth: '720px' }}>
+        <div className="card" style={{ marginBottom: '20px' }}>
+          <div className="card-title">Preset</div>
+          <div className="card-content">
+            <p style={{ color: '#888', marginBottom: '12px', fontSize: '14px' }}>
+              Chọn preset phù hợp với phong cách giao dịch. Engine sẽ dùng bộ tham số tương ứng.
+            </p>
+            <select
+              value={presetId || ''}
+              onChange={(e) => applyPreset(e.target.value || null)}
+              aria-label="Chọn preset"
+              style={{
+                width: '100%',
+                maxWidth: '400px',
+                padding: '10px 12px',
+                background: '#1a1a1a',
+                border: '1px solid #333',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '14px',
+              }}
+            >
+              <option value="">— Mặc định (schema) —</option>
+              {presets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            {presetId && presets.find((p) => p.id === presetId) && (
+              <p style={{ marginTop: '8px', fontSize: '13px', color: '#888' }}>
+                {presets.find((p) => p.id === presetId)?.description}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="card-title">Advanced</div>
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen(!advancedOpen)}
+              style={{
+                padding: '8px 16px',
+                background: advancedOpen ? '#2a2a2a' : '#1a3a5c',
+                border: '1px solid #3a3a3a',
+                borderRadius: '6px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '14px',
+              }}
+            >
+              {advancedOpen ? 'Thu gọn' : 'Mở Advanced'}
+            </button>
+          </div>
+          {advancedOpen && (
+            <div className="card-content" style={{ paddingTop: '8px' }}>
+              <p style={{ color: '#888', marginBottom: '16px', fontSize: '13px' }}>
+                Chỉnh từng tham số. Giới hạn min/max được áp dụng để không phá engine.
+              </p>
+              {groups.map((gr) => {
+                const items = schema.filter((p) => p.group === gr.id);
+                if (items.length === 0) return null;
+                return (
+                  <div key={gr.id} style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <span style={{ fontWeight: '600', fontSize: '15px' }}>{gr.label}</span>
+                      <button
+                        type="button"
+                        onClick={() => resetGroupToPreset(gr.id)}
+                        style={{
+                          padding: '4px 10px',
+                          background: 'transparent',
+                          border: '1px solid #444',
+                          borderRadius: '4px',
+                          color: '#888',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                      >
+                        Về preset
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {items.map((item) => (
+                        <div key={item.key} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                          <label style={{ flex: '1 1 200px', fontSize: '14px' }} title={item.help}>
+                            {item.label}
+                          </label>
+                          {item.type === 'number' && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 240px' }}>
+                              <input
+                                type="range"
+                                min={item.min}
+                                max={item.max}
+                                step={item.step ?? 0.01}
+                                value={Number(getValue(item.key))}
+                                onChange={(e) => setValue(item.key, Number(e.target.value))}
+                                style={{ flex: 1, minWidth: '100px' }}
+                              />
+                              <span style={{ minWidth: '48px', fontSize: '13px', color: '#aaa' }}>
+                                {typeof getValue(item.key) === 'number' && Number(getValue(item.key)) % 1 !== 0
+                                  ? Number(getValue(item.key)).toFixed(2)
+                                  : getValue(item.key)}
+                              </span>
+                            </div>
+                          )}
+                          {item.type === 'select' && (
+                            <select
+                              value={String(getValue(item.key))}
+                              onChange={(e) => setValue(item.key, e.target.value)}
+                              style={{
+                                padding: '6px 10px',
+                                background: '#1a1a1a',
+                                border: '1px solid #333',
+                                borderRadius: '4px',
+                                color: '#fff',
+                                fontSize: '13px',
+                                minWidth: '140px',
+                              }}
+                            >
+                              {item.options?.map((o) => (
+                                <option key={o.value} value={o.value}>
+                                  {o.label}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          {item.type === 'boolean' && (
+                            <input
+                              type="checkbox"
+                              checked={Boolean(getValue(item.key))}
+                              onChange={(e) => setValue(item.key, e.target.checked)}
+                              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={saveAsMyPreset}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#1a3a5c',
+                    border: '1px solid #2a4a6c',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  Lưu thành preset của tôi
+                </button>
+                {savedMessage && <span style={{ fontSize: '13px', color: '#22c55e' }}>{savedMessage}</span>}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

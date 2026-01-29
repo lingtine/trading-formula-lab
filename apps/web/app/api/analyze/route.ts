@@ -9,9 +9,16 @@ export async function POST(request: NextRequest) {
     // Import SMC engine
     const { SmcEngine } = await import('../../../../../packages/engine-smc/src/smc-engine');
 
-    // Nhận candles từ client
+    // Nhận candles + optional presetId / params từ client
     const body = await request.json();
-    const { candles, symbol = 'BTCUSDT', category = 'linear', timeframe = 'M15' } = body;
+    const {
+      candles,
+      symbol = 'BTCUSDT',
+      category = 'linear',
+      timeframe = 'M15',
+      presetId = null,
+      params: customParams = {},
+    } = body;
 
     if (!candles || !Array.isArray(candles) || candles.length === 0) {
       return NextResponse.json(
@@ -20,11 +27,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Run SMC engine
+    // Run SMC engine với preset/params
     const engine = new SmcEngine({
       symbol,
       category,
-      timeframe: timeframe as any
+      timeframe: timeframe as any,
+      presetId: presetId || undefined,
+      params: customParams,
     });
 
     const result = await engine.process(candles);

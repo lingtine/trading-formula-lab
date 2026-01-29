@@ -8,6 +8,10 @@ import { detectSwings } from './swing-detector';
 import { analyzeMarketStructure } from './structure-analyzer';
 import { detectEquilibriumLevels, detectLiquiditySweeps } from './liquidity-analyzer';
 import { detectOrderBlocks, detectFairValueGaps, updatePOIFreshness } from './poi-detector';
+import type { SmcParams } from './params-schema';
+import { getDefaultParams } from './params-schema';
+import { resolvePresetParams } from './presets';
+import { validateParams, SMC_PARAMS_VERSION } from './params-validator';
 
 // Output types matching schema
 export interface SmcOutput {
@@ -57,17 +61,26 @@ export interface SmcEngineOptions {
   category?: 'linear' | 'inverse' | 'spot';
   timeframe?: Timeframe;
   tz?: string;
+  /** Preset id (e.g. btc_m15_conservative). If set, params are overridden by preset. */
+  presetId?: string | null;
+  /** Custom params (merged with preset or default). */
+  params?: Partial<SmcParams>;
 }
 
 export class SmcEngine {
-  private options: Required<SmcEngineOptions>;
+  private options: Required<Omit<SmcEngineOptions, 'presetId' | 'params'>> & {
+    presetId?: string | null;
+    params?: Partial<SmcParams>;
+  };
 
   constructor(options: SmcEngineOptions = {}) {
     this.options = {
       symbol: options.symbol || 'BTCUSDT',
       category: options.category || 'linear',
       timeframe: options.timeframe || 'M15',
-      tz: options.tz || 'UTC'
+      tz: options.tz || 'UTC',
+      presetId: options.presetId ?? null,
+      params: options.params ?? {},
     };
   }
 
@@ -79,8 +92,13 @@ export class SmcEngine {
       throw new Error('Insufficient candles for analysis (minimum 10 required)');
     }
 
+    // Resolve and validate params
+    const rawParams = resolvePresetParams(this.options.presetId ?? null, this.options.params ?? {});
+    const { params: resolvedParams, warnings: paramWarnings } = validateParams(rawParams);
+    const swingLen = typeof resolvedParams.swingLen === 'number' ? resolvedParams.swingLen : 3;
+
     // 1. Detect swings
-    const swings = detectSwings(candles, 3);
+    const swings = detectSwings(candles, swingLen);
 
     // 2. Analyze market structure
     const structure = analyzeMarketStructure(candles, swings);
@@ -139,8 +157,11 @@ export class SmcEngine {
       setups,
       diagnostics: {
         params: {
-          fractalLen: 3,
-          displacementThreshold: 0.5
+          version: SMC_PARAMS_VERSION,
+          presetId: this.options.presetId ?? undefined,
+          ...resolvedParams,
+          fractalLen: swingLen,
+          displacementThreshold: 0.5,
         },
         scores: {
           components: [
@@ -150,7 +171,7 @@ export class SmcEngine {
           ],
           total: 60
         },
-        warnings: [],
+        warnings: [...paramWarnings],
         debug: {
           swingCount: swings.length,
           structureBias: structure.bias

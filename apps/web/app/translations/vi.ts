@@ -20,6 +20,7 @@ export const translations = {
     setups: 'Setups',
     method: 'Phương pháp',
     chart: 'Chart',
+    setup: 'Setup',
   },
 
   // Bias Tab

@@ -6,8 +6,9 @@ import { HelpDialog } from './components/HelpDialog';
 import { useBybitWebSocket, KlineUpdate } from './hooks/useBybitWebSocket';
 import { useBybitKlineWS } from './hooks/useBybitKlineWS';
 import { RealtimeChart } from './components/RealtimeChart';
+import { SetupTab } from './components/SetupTab';
 
-type Tab = 'bias' | 'liquidity' | 'poi' | 'setups' | 'method' | 'chart';
+type Tab = 'bias' | 'liquidity' | 'poi' | 'setups' | 'method' | 'chart' | 'setup';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('bias');
@@ -19,6 +20,8 @@ export default function Home() {
   const [newCandleReceived, setNewCandleReceived] = useState(false);
   const [chartCandles, setChartCandles] = useState<Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>>([]);
   const [chartCandlesLoading, setChartCandlesLoading] = useState(false);
+  const [presetId, setPresetId] = useState<string | null>('btc_m15_conservative');
+  const [setupParams, setSetupParams] = useState<Record<string, number | string | boolean>>({});
 
   // Load initial analysis
   useEffect(() => {
@@ -76,7 +79,14 @@ export default function Home() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candles, symbol: 'BTCUSDT', category: 'linear', timeframe: 'M15' }),
+        body: JSON.stringify({
+          candles,
+          symbol: 'BTCUSDT',
+          category: 'linear',
+          timeframe: 'M15',
+          presetId,
+          params: Object.keys(setupParams).length ? setupParams : undefined,
+        }),
       });
       if (!res.ok) return;
       const result = await res.json();
@@ -85,7 +95,7 @@ export default function Home() {
     } catch (e) {
       console.error('SMC on candle close error:', e);
     }
-  }, []);
+  }, [presetId, setupParams]);
 
   const {
     candles: wsCandles,
@@ -181,7 +191,9 @@ export default function Home() {
           candles,
           symbol,
           category,
-          timeframe: 'M15'
+          timeframe: 'M15',
+          presetId,
+          params: Object.keys(setupParams).length ? setupParams : undefined,
         })
       });
 
@@ -349,6 +361,12 @@ export default function Home() {
         >
           {t.tabs.chart}
         </button>
+        <button
+          className={`tab ${activeTab === 'setup' ? 'active' : ''}`}
+          onClick={() => setActiveTab('setup')}
+        >
+          {t.tabs.setup}
+        </button>
       </div>
 
       <div className="tab-content">
@@ -364,6 +382,15 @@ export default function Home() {
             isConnected={chartWsConnected}
             chartCandlesLoading={chartCandlesLoading}
             chartWsError={chartWsError}
+            analysis={analysis}
+          />
+        )}
+        {activeTab === 'setup' && (
+          <SetupTab
+            presetId={presetId}
+            setupParams={setupParams}
+            onPresetChange={setPresetId}
+            onParamsChange={setSetupParams}
             analysis={analysis}
           />
         )}

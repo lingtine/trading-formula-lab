@@ -12,6 +12,7 @@
     "@trading-formula-lab/core": "workspace:*",
     "@trading-formula-lab/data-bybit": "workspace:*",
     "@trading-formula-lab/engine-smc": "workspace:*",
+    "lightweight-charts": "^4.2.0",
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

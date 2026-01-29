@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { translations } from './translations/vi';
 import { HelpDialog } from './components/HelpDialog';
 import { useBybitWebSocket, KlineUpdate } from './hooks/useBybitWebSocket';
+import { useBybitKlineWS } from './hooks/useBybitKlineWS';
+import { RealtimeChart } from './components/RealtimeChart';
 
-type Tab = 'bias' | 'liquidity' | 'poi' | 'setups' | 'method';
+type Tab = 'bias' | 'liquidity' | 'poi' | 'setups' | 'method' | 'chart';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('bias');
@@ -15,11 +17,88 @@ export default function Home() {
   const [realtime, setRealtime] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [newCandleReceived, setNewCandleReceived] = useState(false);
+  const [chartCandles, setChartCandles] = useState<Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>>([]);
+  const [chartCandlesLoading, setChartCandlesLoading] = useState(false);
 
   // Load initial analysis
   useEffect(() => {
     loadAnalysis();
   }, []);
+
+  // Fetch candles for chart: GET /api/candles, fallback client Bybit
+  const fetchChartCandles = useCallback(async () => {
+    setChartCandlesLoading(true);
+    try {
+      let candles: Array<{ t: number; o: number; h: number; l: number; c: number; v: number }> = [];
+      const symbol = 'BTCUSDT';
+      const tf = '15';
+      const limit = 200;
+
+      const apiRes = await fetch(`/api/candles?symbol=${symbol}&tf=${tf}&limit=${limit}`);
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        if (data.candles?.length) candles = data.candles;
+      }
+
+      if (candles.length === 0) {
+        const bybitUrl = `https://api.bybit.com/v5/market/kline?category=linear&symbol=${symbol}&interval=${tf}&limit=${limit}`;
+        const res = await fetch(bybitUrl, { method: 'GET', headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error(`Bybit ${res.status}`);
+        const data = await res.json();
+        if (data.retCode !== 0 || !data.result?.list?.length) throw new Error(data.retMsg || 'No candles');
+        candles = data.result.list.reverse().map((item: string[]) => ({
+          t: parseInt(item[0], 10),
+          o: parseFloat(item[1]),
+          h: parseFloat(item[2]),
+          l: parseFloat(item[3]),
+          c: parseFloat(item[4]),
+          v: parseFloat(item[5]),
+        }));
+      }
+      setChartCandles(candles);
+    } catch (e) {
+      console.error('Fetch chart candles error:', e);
+    } finally {
+      setChartCandlesLoading(false);
+    }
+  }, []);
+
+  // When opening Chart tab, fetch candles if not yet loaded
+  useEffect(() => {
+    if (activeTab === 'chart' && chartCandles.length === 0 && !chartCandlesLoading) {
+      fetchChartCandles();
+    }
+  }, [activeTab, chartCandles.length, chartCandlesLoading, fetchChartCandles]);
+
+  // Realtime chart: WS merge + SMC on candle close
+  const onCandleClose = useCallback(async (candles: Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>) => {
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candles, symbol: 'BTCUSDT', category: 'linear', timeframe: 'M15' }),
+      });
+      if (!res.ok) return;
+      const result = await res.json();
+      setAnalysis(result);
+      setLastUpdate(new Date());
+    } catch (e) {
+      console.error('SMC on candle close error:', e);
+    }
+  }, []);
+
+  const {
+    candles: wsCandles,
+    isConnected: chartWsConnected,
+    error: chartWsError,
+    candleStatus,
+  } = useBybitKlineWS({
+    symbol: 'BTCUSDT',
+    interval: '15',
+    initialCandles: chartCandles,
+    onCandleClose,
+    enabled: activeTab === 'chart',
+  });
 
   // Handle WebSocket kline updates
   const handleKlineUpdate = useCallback(async (update: KlineUpdate) => {
@@ -264,6 +343,12 @@ export default function Home() {
         >
           {t.tabs.method}
         </button>
+        <button
+          className={`tab ${activeTab === 'chart' ? 'active' : ''}`}
+          onClick={() => setActiveTab('chart')}
+        >
+          {t.tabs.chart}
+        </button>
       </div>
 
       <div className="tab-content">
@@ -272,7 +357,63 @@ export default function Home() {
         {activeTab === 'poi' && <POITab poi={analysis.poi} t={t.poi} />}
         {activeTab === 'setups' && <SetupsTab setups={analysis.setups} t={t.setups} />}
         {activeTab === 'method' && <MethodTab analysis={analysis} t={t.method} />}
+        {activeTab === 'chart' && (
+          <ChartTab
+            candles={wsCandles.length ? wsCandles : chartCandles}
+            candleStatus={candleStatus}
+            isConnected={chartWsConnected}
+            chartCandlesLoading={chartCandlesLoading}
+            chartWsError={chartWsError}
+            analysis={analysis}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function ChartTab({
+  candles,
+  candleStatus,
+  isConnected,
+  chartCandlesLoading,
+  chartWsError,
+  analysis,
+}: {
+  candles: Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>;
+  candleStatus: 'forming' | 'closed';
+  isConnected: boolean;
+  chartCandlesLoading: boolean;
+  chartWsError: string | null;
+  analysis: any;
+}) {
+  const t = translations;
+  if (chartCandlesLoading && candles.length === 0) {
+    return <div className="loading">{t.common.loading}</div>;
+  }
+  if (candles.length === 0) {
+    return (
+      <div className="card">
+        <div className="card-content">
+          <p style={{ color: '#888' }}>Chưa có dữ liệu nến. Thử refresh hoặc kiểm tra kết nối.</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div>
+      {chartWsError && (
+        <div style={{ marginBottom: '12px', padding: '8px 12px', background: 'rgba(239,68,68,0.15)', borderRadius: '6px', color: '#ef4444', fontSize: '14px' }}>
+          WS: {chartWsError}
+        </div>
+      )}
+      <RealtimeChart
+        candles={candles}
+        candleStatus={candleStatus}
+        isConnected={isConnected}
+        symbol="BTCUSDT"
+        analysis={analysis ? { poi: analysis.poi, levels: analysis.levels } : undefined}
+      />
     </div>
   );
 }

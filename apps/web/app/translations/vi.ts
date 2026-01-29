@@ -19,6 +19,7 @@ export const translations = {
     poi: 'POI',
     setups: 'Setups',
     method: 'Phương pháp',
+    chart: 'Chart',
   },
 
   // Bias Tab

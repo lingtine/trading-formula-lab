@@ -2,7 +2,7 @@
  * Points of Interest (POI) detection: Order Blocks and Fair Value Gaps
  */
 
-import { Candle } from '@trading-formula-lab/core';
+import { Candle } from '../../core/src/types';
 import { OrderBlock, FairValueGap } from './types';
 
 /**

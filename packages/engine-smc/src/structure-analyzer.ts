@@ -2,7 +2,7 @@
  * Market structure analysis: BOS (Break of Structure) and CHoCH (Change of Character)
  */
 
-import { Candle } from '@trading-formula-lab/core';
+import { Candle } from '../../core/src/types';
 import { Swing, MarketStructure } from './types';
 
 /**

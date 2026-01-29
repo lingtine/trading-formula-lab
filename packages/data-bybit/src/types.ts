@@ -2,7 +2,7 @@
  * Bybit-specific types
  */
 
-import { Candle, Timeframe, MarketCategory } from '@trading-formula-lab/core';
+import { Candle, Timeframe, MarketCategory } from '../../core/src/types';
 
 export interface BybitKlineParams {
   category: MarketCategory;

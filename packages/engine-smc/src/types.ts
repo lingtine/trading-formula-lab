@@ -2,7 +2,7 @@
  * SMC Engine types
  */
 
-import { Candle, Timeframe } from '@trading-formula-lab/core';
+import { Candle, Timeframe } from '../../core/src/types';
 
 // Swing point
 export interface Swing {

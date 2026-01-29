@@ -2,7 +2,7 @@
  * Swing detection using fractal method (len=3)
  */
 
-import { Candle } from '@trading-formula-lab/core';
+import { Candle } from '../../core/src/types';
 import { Swing } from './types';
 
 /**

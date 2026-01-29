@@ -2,7 +2,7 @@
  * Liquidity analysis: EQH/EQL and liquidity sweeps
  */
 
-import { Candle } from '@trading-formula-lab/core';
+import { Candle } from '../../core/src/types';
 import { Swing, EquilibriumLevel, LiquiditySweep } from './types';
 
 /**

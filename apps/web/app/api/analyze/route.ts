@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic rendering - route sử dụng request headers
+export const dynamic = 'force-dynamic';
+
 // Dynamic import to avoid bundling issues with Node.js modules
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest) {
       candles = result.candles;
     } catch (proxyError: any) {
       // Nếu proxy fail và đang dùng proxy, thử direct call
-      if (proxyUrl && proxyError.message?.includes('403') || proxyError.message?.includes('Forbidden')) {
+      if (proxyUrl && (proxyError.message?.includes('403') || proxyError.message?.includes('Forbidden'))) {
         console.warn('Proxy failed, trying direct call:', proxyError.message);
         provider = new BybitDataProvider(); // Direct call, không dùng proxy
         const result = await provider.fetchCandles({

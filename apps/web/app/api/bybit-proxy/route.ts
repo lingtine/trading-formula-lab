@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// Force dynamic rendering - route sử dụng request.url
+export const dynamic = 'force-dynamic';
+
 /**
  * Proxy route để fetch candles từ Bybit API
  * Tránh bị chặn IP từ Vercel server
@@ -35,9 +38,8 @@ export async function GET(request: Request) {
         'Accept-Language': 'en-US,en;q=0.9',
         'Referer': 'https://www.bybit.com/',
         'Origin': 'https://www.bybit.com'
-      },
-      // Thêm cache để giảm request
-      next: { revalidate: 60 } // Cache 60 giây
+      }
+      // Cache được xử lý qua Cache-Control headers trong response
     });
 
     if (!response.ok) {

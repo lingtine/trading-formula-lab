@@ -1,0 +1,49 @@
+
+---
+
+## Output Contract (Important)
+All engines must return the same shape:
+- `summary`
+- `signals[]`
+- `levels[]`
+- `poi[]`
+- `setups[]`
+- `diagnostics`
+
+Schema: `packages/core/schemas/smc-output.schema.json`
+
+---
+
+## MVP Scope (SMC)
+### Included
+- Swing detection (fractal len=3)
+- BOS / CHoCH
+- EQH / EQL
+- Liquidity sweep (wick + close back)
+- FVG detection + freshness
+- OB detection linked to displacement + BOS
+- Setup generation:
+  - Sweep -> CHoCH -> POI
+  - BOS continuation -> POI pullback
+
+### Later
+- Breaker blocks / mitigation blocks
+- Session killzones (London/NY)
+- Backtesting + alerts
+
+---
+
+## Tech Stack
+- Node.js 20+
+- pnpm (workspace monorepo)
+- TypeScript
+- Next.js (web UI)
+
+---
+
+## Quick Start
+
+### 1) Create project
+```bash
+mkdir trading-formula-lab && cd trading-formula-lab
+pnpm init

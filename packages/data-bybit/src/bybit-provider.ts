@@ -1,0 +1,169 @@
+/**
+ * Bybit REST API provider for fetching candles
+ */
+
+import { Candle, Timeframe } from '../../core/src/types';
+import { BybitKlineParams, BybitKlineResponse, FetchCandlesOptions, NormalizedCandlesResult } from './types';
+import * as https from 'https';
+import * as http from 'http';
+
+// Convert Timeframe to Bybit interval format
+function timeframeToBybitInterval(tf: Timeframe): string {
+  const mapping: Record<Timeframe, string> = {
+    'M1': '1',
+    'M3': '3',
+    'M5': '5',
+    'M15': '15',
+    'M30': '30',
+    'H1': '60',
+    'H2': '120',
+    'H4': '240',
+    'H6': '360',
+    'H12': '720',
+    'D1': 'D',
+    'W1': 'W'
+  };
+  return mapping[tf];
+}
+
+// Normalize Bybit kline array to Candle format
+function normalizeKlineItem(item: string[]): Candle {
+  return {
+    t: parseInt(item[0], 10), // startTime (epoch ms)
+    o: parseFloat(item[1]),   // openPrice
+    h: parseFloat(item[2]),   // highPrice
+    l: parseFloat(item[3]),   // lowPrice
+    c: parseFloat(item[4]),   // closePrice
+    v: parseFloat(item[5])    // volume
+  };
+}
+
+export class BybitDataProvider {
+  private baseUrl: string;
+
+  constructor(baseUrl: string = process.env.BYBIT_REST_BASE || 'https://api.bybit.com') {
+    this.baseUrl = baseUrl;
+  }
+
+  /**
+   * Fetch kline data from Bybit REST API
+   */
+  async fetchKlines(params: BybitKlineParams): Promise<BybitKlineResponse> {
+    const queryParams = new URLSearchParams({
+      category: params.category,
+      symbol: params.symbol,
+      interval: params.interval,
+      ...(params.start && { start: params.start.toString() }),
+      ...(params.end && { end: params.end.toString() }),
+      ...(params.limit && { limit: params.limit.toString() })
+    });
+
+    const url = `${this.baseUrl}/v5/market/kline?${queryParams.toString()}`;
+
+    // Use fetch if available (Node 18+), otherwise use https module
+    let data: BybitKlineResponse;
+
+    if (typeof fetch !== 'undefined') {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Bybit API error: ${response.status} ${response.statusText}`);
+      }
+
+      data = await response.json() as BybitKlineResponse;
+    } else {
+      // Fallback for older Node.js versions
+      data = await new Promise<BybitKlineResponse>((resolve, reject) => {
+        const urlObj = new URL(url);
+        const options = {
+          hostname: urlObj.hostname,
+          path: urlObj.pathname + urlObj.search,
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        const req = (urlObj.protocol === 'https:' ? https : http).request(options, (res) => {
+          let body = '';
+          res.on('data', (chunk) => { body += chunk; });
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(body) as BybitKlineResponse;
+              resolve(parsed);
+            } catch (e) {
+              reject(e);
+            }
+          });
+        });
+
+        req.on('error', reject);
+        req.end();
+      });
+    }
+
+    if (data.retCode !== 0) {
+      throw new Error(`Bybit API error: ${data.retMsg} (code: ${data.retCode})`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Fetch candles and normalize to {t,o,h,l,c,v} format
+   */
+  async fetchCandles(options: FetchCandlesOptions = {}): Promise<NormalizedCandlesResult> {
+    const symbol = options.symbol || process.env.SYMBOL || 'BTCUSDT';
+    const category = options.category || (process.env.CATEGORY as any) || 'linear';
+
+    // Handle timeframe: if env.TF is just a number (e.g., "15"), convert to "M15"
+    let timeframe: Timeframe = options.timeframe || 'M15';
+    if (!options.timeframe && process.env.TF) {
+      const tfEnv = process.env.TF;
+      if (/^\d+$/.test(tfEnv)) {
+        timeframe = `M${tfEnv}` as Timeframe;
+      } else {
+        timeframe = tfEnv as Timeframe;
+      }
+    }
+
+    const limit = options.limit || parseInt(process.env.LIMIT || '200', 10);
+
+    const bybitInterval = timeframeToBybitInterval(timeframe);
+    if (!bybitInterval) {
+      throw new Error(`Invalid timeframe: ${timeframe}. Supported: M1, M3, M5, M15, M30, H1, H2, H4, H6, H12, D1, W1`);
+    }
+
+    const params: BybitKlineParams = {
+      category,
+      symbol,
+      interval: bybitInterval,
+      limit,
+      ...(options.start && { start: options.start }),
+      ...(options.end && { end: options.end })
+    };
+
+    const response = await this.fetchKlines(params);
+
+    if (!response.result || !response.result.list || response.result.list.length === 0) {
+      throw new Error(`No candles returned from Bybit API. Response: ${JSON.stringify(response)}`);
+    }
+
+    // Normalize candles (reverse order - Bybit returns newest first)
+    const candles: Candle[] = response.result.list
+      .reverse() // Reverse to get chronological order (oldest first)
+      .map(normalizeKlineItem);
+
+    return {
+      candles,
+      symbol,
+      category,
+      timeframe
+    };
+  }
+}

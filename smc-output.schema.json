@@ -1,0 +1,546 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://your-domain.com/schemas/smc-output.schema.json",
+  "title": "SMC Engine Output Schema",
+  "type": "object",
+  "required": [
+    "engine",
+    "context",
+    "summary",
+    "signals",
+    "levels",
+    "poi",
+    "setups",
+    "diagnostics"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "engine": {
+      "type": "object",
+      "required": ["name", "version", "school", "generatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "const": "smc-engine" },
+        "version": { "type": "string", "minLength": 1 },
+        "school": { "type": "string", "const": "SMC" },
+        "generatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+
+    "context": {
+      "type": "object",
+      "required": [
+        "symbol",
+        "market",
+        "category",
+        "timeframe",
+        "tz",
+        "candleSource",
+        "range"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "symbol": { "type": "string", "minLength": 1, "examples": ["BTCUSDT"] },
+        "market": {
+          "type": "string",
+          "enum": ["spot", "futures", "perpetual"]
+        },
+        "category": { "type": "string", "enum": ["linear", "inverse", "spot"] },
+        "timeframe": {
+          "type": "string",
+          "pattern": "^(M1|M3|M5|M15|M30|H1|H2|H4|H6|H12|D1|W1)$"
+        },
+        "tz": { "type": "string", "examples": ["Asia/Ho_Chi_Minh", "UTC"] },
+        "candleSource": {
+          "type": "string",
+          "enum": ["bybit-kline", "bybit-mark-price-kline", "custom"]
+        },
+        "range": {
+          "type": "object",
+          "required": ["from", "to", "limit"],
+          "additionalProperties": false,
+          "properties": {
+            "from": { "type": "integer", "description": "epoch ms" },
+            "to": { "type": "integer", "description": "epoch ms" },
+            "limit": { "type": "integer", "minimum": 50, "maximum": 5000 }
+          }
+        },
+        "htf": {
+          "type": "object",
+          "required": ["timeframe", "enabled"],
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "timeframe": {
+              "type": "string",
+              "pattern": "^(H1|H2|H4|H6|H12|D1|W1)$"
+            }
+          }
+        }
+      }
+    },
+
+    "summary": {
+      "type": "object",
+      "required": ["bias", "decision", "confidence", "headline", "keyReasons"],
+      "additionalProperties": false,
+      "properties": {
+        "bias": {
+          "type": "string",
+          "enum": ["bullish", "bearish", "range", "unknown"]
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["BUY", "SELL", "NO_TRADE", "WAIT_CONFIRMATION"]
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 100 },
+        "headline": { "type": "string", "minLength": 1 },
+        "keyReasons": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+
+    "signals": {
+      "type": "array",
+      "description": "Atomic signals (structure/liquidity/poi/execution).",
+      "items": { "$ref": "#/$defs/Signal" }
+    },
+
+    "levels": {
+      "type": "array",
+      "description": "Key price levels/zones for plotting and alerts.",
+      "items": { "$ref": "#/$defs/Level" }
+    },
+
+    "poi": {
+      "type": "array",
+      "description": "Points of interest (OB/FVG/Breaker/Mitigation etc.).",
+      "items": { "$ref": "#/$defs/POI" }
+    },
+
+    "setups": {
+      "type": "array",
+      "description": "Trade plans derived from confluence rules.",
+      "items": { "$ref": "#/$defs/Setup" }
+    },
+
+    "diagnostics": {
+      "type": "object",
+      "required": ["params", "scores", "warnings", "debug"],
+      "additionalProperties": false,
+      "properties": {
+        "params": {
+          "type": "object",
+          "description": "Resolved params used for this run.",
+          "additionalProperties": true
+        },
+        "scores": {
+          "type": "object",
+          "required": ["components", "total"],
+          "additionalProperties": false,
+          "properties": {
+            "components": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "value"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "type": "string" },
+                  "value": {
+                    "type": "number",
+                    "minimum": -100,
+                    "maximum": 100
+                  },
+                  "notes": { "type": "string" }
+                }
+              }
+            },
+            "total": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "debug": {
+          "type": "object",
+          "description": "Optional debug payload for dev/backtest. Do not rely on structure in UI.",
+          "additionalProperties": true
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "TimeRef": {
+      "type": "object",
+      "required": ["tf", "t"],
+      "additionalProperties": false,
+      "properties": {
+        "tf": {
+          "type": "string",
+          "pattern": "^(M1|M3|M5|M15|M30|H1|H2|H4|H6|H12|D1|W1)$"
+        },
+        "t": { "type": "integer", "description": "epoch ms (candle open time)" }
+      }
+    },
+
+    "PriceRange": {
+      "type": "object",
+      "required": ["low", "high"],
+      "additionalProperties": false,
+      "properties": {
+        "low": { "type": "number" },
+        "high": { "type": "number" }
+      }
+    },
+
+    "Anchor": {
+      "type": "object",
+      "required": ["time", "price"],
+      "additionalProperties": false,
+      "properties": {
+        "time": { "$ref": "#/$defs/TimeRef" },
+        "price": { "type": "number" }
+      }
+    },
+
+    "Signal": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "direction",
+        "confidence",
+        "time",
+        "label",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "STRUCTURE_BOS",
+            "STRUCTURE_CHOCH",
+            "LIQUIDITY_EQH",
+            "LIQUIDITY_EQL",
+            "LIQUIDITY_SWEEP",
+            "POI_OB",
+            "POI_FVG",
+            "POI_BREAKER",
+            "EXEC_ENTRY_TRIGGER",
+            "EXEC_INVALIDATION",
+            "FILTER_PREMIUM_DISCOUNT",
+            "FILTER_DISPLACEMENT"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["bullish", "bearish", "neutral"]
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 100 },
+        "time": { "$ref": "#/$defs/TimeRef" },
+        "label": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "anchors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Anchor" },
+          "maxItems": 8
+        },
+        "relatedIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "Level": {
+      "type": "object",
+      "required": ["id", "type", "tf", "range", "strength", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": [
+            "SUPPORT",
+            "RESISTANCE",
+            "EQH",
+            "EQL",
+            "BUY_SIDE_LIQUIDITY",
+            "SELL_SIDE_LIQUIDITY",
+            "PREMIUM_ZONE",
+            "DISCOUNT_ZONE",
+            "MIDPOINT_0_5"
+          ]
+        },
+        "tf": {
+          "type": "string",
+          "pattern": "^(M1|M3|M5|M15|M30|H1|H2|H4|H6|H12|D1|W1)$"
+        },
+        "range": { "$ref": "#/$defs/PriceRange" },
+        "strength": { "type": "number", "minimum": 0, "maximum": 100 },
+        "status": {
+          "type": "string",
+          "enum": ["fresh", "tested", "broken", "invalid"]
+        },
+        "createdAt": { "$ref": "#/$defs/TimeRef" },
+        "meta": { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "POI": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "direction",
+        "tf",
+        "range",
+        "freshness",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": ["OB", "FVG", "BREAKER", "MITIGATION"]
+        },
+        "direction": { "type": "string", "enum": ["bullish", "bearish"] },
+        "tf": {
+          "type": "string",
+          "pattern": "^(M1|M3|M5|M15|M30|H1|H2|H4|H6|H12|D1|W1)$"
+        },
+        "range": { "$ref": "#/$defs/PriceRange" },
+
+        "freshness": {
+          "type": "object",
+          "required": ["isFresh", "touches", "fillRatio"],
+          "additionalProperties": false,
+          "properties": {
+            "isFresh": { "type": "boolean" },
+            "touches": { "type": "integer", "minimum": 0, "maximum": 999 },
+            "fillRatio": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+
+        "status": {
+          "type": "string",
+          "enum": ["active", "consumed", "invalid"]
+        },
+
+        "origin": {
+          "type": "object",
+          "required": ["createdBy", "time"],
+          "additionalProperties": false,
+          "properties": {
+            "createdBy": {
+              "type": "string",
+              "enum": ["bos", "choch", "displacement", "manual"]
+            },
+            "time": { "$ref": "#/$defs/TimeRef" }
+          }
+        },
+
+        "quality": {
+          "type": "object",
+          "required": ["score"],
+          "additionalProperties": false,
+          "properties": {
+            "score": { "type": "number", "minimum": 0, "maximum": 100 },
+            "components": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "value"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "type": "string" },
+                  "value": { "type": "number", "minimum": -100, "maximum": 100 }
+                }
+              }
+            }
+          }
+        },
+
+        "links": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "structureSignalId": { "type": "string" },
+            "liquiditySignalId": { "type": "string" }
+          }
+        },
+
+        "notes": { "type": "string" },
+        "meta": { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "Setup": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "direction",
+        "status",
+        "timeframe",
+        "entry",
+        "risk",
+        "targets",
+        "confidence",
+        "reasons",
+        "confluence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+
+        "direction": { "type": "string", "enum": ["BUY", "SELL"] },
+
+        "status": {
+          "type": "string",
+          "enum": ["valid", "wait", "triggered", "invalid"]
+        },
+
+        "timeframe": {
+          "type": "string",
+          "pattern": "^(M1|M3|M5|M15|M30|H1|H2|H4|H6|H12|D1|W1)$"
+        },
+
+        "entry": {
+          "type": "object",
+          "required": ["mode", "zone", "trigger"],
+          "additionalProperties": false,
+          "properties": {
+            "mode": { "type": "string", "enum": ["limit", "market", "stop"] },
+            "zone": { "$ref": "#/$defs/PriceRange" },
+            "trigger": {
+              "type": "object",
+              "required": ["type", "rules"],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "NONE",
+                    "CLOSE_RECLAIM",
+                    "CHOCH_CONFIRM",
+                    "BOS_CONFIRM",
+                    "FVG_FILL_RATIO",
+                    "OB_REJECTION"
+                  ]
+                },
+                "rules": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "minItems": 0,
+                  "maxItems": 10
+                }
+              }
+            },
+            "validFrom": { "$ref": "#/$defs/TimeRef" }
+          }
+        },
+
+        "risk": {
+          "type": "object",
+          "required": ["stopLoss", "invalidation", "rrMin"],
+          "additionalProperties": false,
+          "properties": {
+            "stopLoss": { "type": "number" },
+            "invalidation": {
+              "type": "object",
+              "required": ["type", "anchor"],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "BELOW_OB",
+                    "ABOVE_OB",
+                    "BELOW_SWEEP",
+                    "ABOVE_SWEEP",
+                    "BELOW_STRUCTURE",
+                    "ABOVE_STRUCTURE"
+                  ]
+                },
+                "anchor": { "$ref": "#/$defs/Anchor" }
+              }
+            },
+            "rrMin": { "type": "number", "minimum": 0.5, "maximum": 20 }
+          }
+        },
+
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": ["type", "price", "label"],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["TP", "LIQUIDITY", "SWING"]
+              },
+              "price": { "type": "number" },
+              "label": { "type": "string" },
+              "partialClosePct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        },
+
+        "confidence": { "type": "number", "minimum": 0, "maximum": 100 },
+
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": { "type": "string" }
+        },
+
+        "confluence": {
+          "type": "object",
+          "required": ["poiIds", "signalIds"],
+          "additionalProperties": false,
+          "properties": {
+            "poiIds": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 0,
+              "maxItems": 10
+            },
+            "signalIds": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 0,
+              "maxItems": 20
+            },
+            "notes": { "type": "string" }
+          }
+        },
+
+        "meta": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}

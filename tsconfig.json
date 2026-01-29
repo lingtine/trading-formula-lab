@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "declaration": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "composite": true,
+    "incremental": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@trading-formula-lab/core": ["./packages/core/src"],
+      "@trading-formula-lab/data-bybit": ["./packages/data-bybit/src"],
+      "@trading-formula-lab/engine-smc": ["./packages/engine-smc/src"]
+    }
+  },
+  "ts-node": {
+    "esm": false,
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  },
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/data-bybit" },
+    { "path": "./packages/engine-smc" },
+    { "path": "./apps/web" }
+  ],
+  "include": ["example.ts", "packages/**/*", "apps/**/*"],
+  "exclude": ["node_modules", "dist", ".next"]
+}

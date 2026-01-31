@@ -94,6 +94,23 @@ export default function Home() {
       const result = await res.json();
       setAnalysis(result);
       setLastUpdate(new Date());
+      // Cập nhật lệnh ảo: fill entry, expire, đóng TP/SL (worst_case)
+      const lastCandle = candles.length ? candles[candles.length - 1] : null;
+      if (lastCandle) {
+        try {
+          await fetch('/api/virtual-orders/process', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              closedCandle: { t: lastCandle.t, o: lastCandle.o, h: lastCandle.h, l: lastCandle.l, c: lastCandle.c },
+              symbol: 'BTCUSDT',
+              timeframe: 'M15',
+            }),
+          });
+        } catch (err) {
+          console.error('Virtual orders process error:', err);
+        }
+      }
       if (autoRecordFromChart && result?.setups?.length) {
         const setup = result.setups[0];
         const lastCandleTime = candles.length ? candles[candles.length - 1].t : undefined;
@@ -160,6 +177,40 @@ export default function Home() {
     onKlineUpdate: handleKlineUpdate,
     enabled: realtime
   });
+
+  /** Tạo lệnh ảo từ 1 setup (tab Kịch bản): POST /api/virtual-orders, sau đó chuyển sang tab Lịch sử */
+  const createVirtualOrder = useCallback(
+    async (setup: any) => {
+      if (!analysis) return;
+      try {
+        const body = {
+          symbol: analysis.context?.symbol ?? 'BTCUSDT',
+          timeframe: analysis.context?.timeframe ?? 'M15',
+          preset_id: presetId,
+          params_resolved: setupParams,
+          engine_version: analysis.engine?.version ?? 'smc.v1.0.0',
+          snapshot_id: `snap_${Date.now()}_${analysis.context?.range?.to ?? ''}`,
+          setup,
+          minConfidence: 70,
+          minRR: 2.0,
+          minConfluenceCount: 2,
+          validUntilCandles: 12,
+        };
+        const res = await fetch('/api/virtual-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Tạo lệnh ảo thất bại');
+        setActiveTab('history');
+      } catch (e: any) {
+        console.error('Create virtual order error:', e);
+        setError(e.message || 'Tạo lệnh ảo thất bại');
+      }
+    },
+    [analysis, presetId, setupParams]
+  );
 
   /** Ghi kịch bản hiện tại vào lịch sử (từ tab Thiết lập): lấy thông tin từ analysis + preset, tạo lệnh từ setup đầu tiên */
   const recordSetupHistory = useCallback(async () => {
@@ -444,7 +495,16 @@ export default function Home() {
         {activeTab === 'bias' && <BiasTab summary={analysis.summary} t={t.bias} />}
         {activeTab === 'liquidity' && <LiquidityTab levels={analysis.levels} signals={analysis.signals} t={t.liquidity} />}
         {activeTab === 'poi' && <POITab poi={analysis.poi} t={t.poi} />}
-        {activeTab === 'setups' && <SetupsTab setups={analysis.setups} t={t.setups} />}
+        {activeTab === 'setups' && (
+          <SetupsTab
+            setups={analysis.setups}
+            t={t.setups}
+            analysis={analysis}
+            presetId={presetId}
+            setupParams={setupParams}
+            onCreateOrder={createVirtualOrder}
+          />
+        )}
         {activeTab === 'method' && <MethodTab analysis={analysis} t={t.method} />}
         {activeTab === 'chart' && (
           <ChartTab
@@ -726,7 +786,35 @@ function POITab({ poi, t }: { poi: any[]; t: any }) {
   );
 }
 
-function SetupsTab({ setups, t }: { setups: any[]; t: any }) {
+function SetupsTab({
+  setups,
+  t,
+  analysis,
+  presetId,
+  setupParams,
+  onCreateOrder,
+}: {
+  setups: any[];
+  t: any;
+  analysis?: any;
+  presetId?: string | null;
+  setupParams?: Record<string, number | string | boolean>;
+  onCreateOrder?: (setup: any) => void | Promise<void>;
+}) {
+  const [creatingId, setCreatingId] = useState<string | null>(null);
+  const handleCreateOrder = useCallback(
+    async (setup: any) => {
+      if (!onCreateOrder) return;
+      const id = setup.id ?? setup.name ?? '';
+      setCreatingId(id);
+      try {
+        await onCreateOrder(setup);
+      } finally {
+        setCreatingId(null);
+      }
+    },
+    [onCreateOrder]
+  );
   return (
     <div>
       <div className="card">
@@ -739,12 +827,33 @@ function SetupsTab({ setups, t }: { setups: any[]; t: any }) {
             <p style={{ color: '#888' }}>{t.noSetups}</p>
           ) : (
             setups.map((setup, i) => (
-              <div key={i} style={{ marginBottom: '16px', padding: '16px', background: '#0a0a0a', borderRadius: '6px', border: '1px solid #2a2a2a' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div key={setup.id ?? i} style={{ marginBottom: '16px', padding: '16px', background: '#0a0a0a', borderRadius: '6px', border: '1px solid #2a2a2a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                   <span style={{ fontWeight: '600', fontSize: '16px' }}>{setup.name}</span>
-                  <span className={`badge ${setup.direction === 'BUY' ? 'bullish' : 'bearish'}`}>
-                    {setup.direction === 'BUY' ? 'MUA' : 'BÁN'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className={`badge ${setup.direction === 'BUY' ? 'bullish' : 'bearish'}`}>
+                      {setup.direction === 'BUY' ? 'MUA' : 'BÁN'}
+                    </span>
+                    {onCreateOrder && (
+                      <button
+                        type="button"
+                        disabled={!!creatingId}
+                        onClick={() => handleCreateOrder(setup)}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#1a3a5c',
+                          border: '1px solid #2a4a6c',
+                          borderRadius: '6px',
+                          color: '#fff',
+                          cursor: creatingId ? 'not-allowed' : 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                        }}
+                      >
+                        {creatingId === (setup.id ?? setup.name) ? 'Đang tạo...' : 'Tạo lệnh'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div style={{ fontSize: '14px', color: '#888', marginBottom: '8px' }}>
                   {t.status.title}: <span style={{ color: '#fff' }}>{t.status[setup.status] || setup.status}</span>

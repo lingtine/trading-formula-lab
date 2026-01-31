@@ -21,6 +21,7 @@ export const translations = {
     method: 'Phương pháp',
     chart: 'Biểu đồ',
     setup: 'Thiết lập',
+    history: 'Lịch sử áp dụng kịch bản',
   },
 
   // Bias Tab

@@ -29,6 +29,7 @@ interface SetupTabProps {
   onPresetChange: (id: string | null) => void;
   onParamsChange: (params: Record<string, number | string | boolean>) => void;
   onApply?: () => void;
+  onRecordHistory?: () => void | Promise<void>;
   analysis?: any;
 }
 
@@ -38,6 +39,7 @@ export function SetupTab({
   onPresetChange,
   onParamsChange,
   onApply,
+  onRecordHistory,
   analysis,
 }: SetupTabProps) {
   const [schema, setSchema] = useState<ParamSchemaItem[]>([]);
@@ -227,25 +229,44 @@ export function SetupTab({
                 {presets.find((p) => p.id === presetId)?.description}
               </p>
             )}
-            {onApply && (
-              <button
-                type="button"
-                onClick={onApply}
-                style={{
-                  marginTop: '16px',
-                  padding: '12px 24px',
-                  background: '#2563eb',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                }}
-              >
-                Áp dụng
-              </button>
-            )}
+            <div style={{ marginTop: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {onApply && (
+                <button
+                  type="button"
+                  onClick={onApply}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#2563eb',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                  }}
+                >
+                  Áp dụng
+                </button>
+              )}
+              {onRecordHistory && (
+                <button
+                  type="button"
+                  onClick={() => onRecordHistory()}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#1a3a5c',
+                    border: '1px solid #2a4a6c',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                  }}
+                >
+                  Ghi vào lịch sử
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

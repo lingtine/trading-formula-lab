@@ -7,8 +7,9 @@ import { useBybitWebSocket, KlineUpdate } from './hooks/useBybitWebSocket';
 import { useBybitKlineWS } from './hooks/useBybitKlineWS';
 import { RealtimeChart } from './components/RealtimeChart';
 import { SetupTab } from './components/SetupTab';
+import { SetupHistoryTab } from './components/SetupHistoryTab';
 
-type Tab = 'bias' | 'liquidity' | 'poi' | 'setups' | 'method' | 'chart' | 'setup';
+type Tab = 'bias' | 'liquidity' | 'poi' | 'setups' | 'method' | 'chart' | 'setup' | 'history';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('bias');
@@ -22,6 +23,7 @@ export default function Home() {
   const [chartCandlesLoading, setChartCandlesLoading] = useState(false);
   const [presetId, setPresetId] = useState<string | null>('btc_m15_conservative');
   const [setupParams, setSetupParams] = useState<Record<string, number | string | boolean>>({});
+  const [autoRecordFromChart, setAutoRecordFromChart] = useState(false);
 
   // Load initial analysis
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function Home() {
     }
   }, [activeTab, chartCandles.length, chartCandlesLoading, fetchChartCandles]);
 
-  // Realtime chart: WS merge + SMC on candle close
+  // Realtime chart: WS merge + SMC on candle close; tùy chọn tự ghi vào lịch sử
   const onCandleClose = useCallback(async (candles: Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>) => {
     try {
       const res = await fetch('/api/analyze', {
@@ -92,10 +94,37 @@ export default function Home() {
       const result = await res.json();
       setAnalysis(result);
       setLastUpdate(new Date());
+      if (autoRecordFromChart && result?.setups?.length) {
+        const setup = result.setups[0];
+        const lastCandleTime = candles.length ? candles[candles.length - 1].t : undefined;
+        try {
+          await fetch('/api/setup-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              presetId,
+              params: setupParams,
+              symbol: result.context?.symbol ?? 'BTCUSDT',
+              timeframe: result.context?.timeframe ?? 'M15',
+              source: 'chart',
+              candleTime: lastCandleTime,
+              setupSnapshot: {
+                name: setup.name,
+                direction: setup.direction,
+                entry: setup.entry,
+                risk: setup.risk,
+                targets: setup.targets ?? [],
+              },
+            }),
+          });
+        } catch (err) {
+          console.error('Auto record from chart error:', err);
+        }
+      }
     } catch (e) {
       console.error('SMC on candle close error:', e);
     }
-  }, [presetId, setupParams]);
+  }, [presetId, setupParams, autoRecordFromChart]);
 
   const {
     candles: wsCandles,
@@ -131,6 +160,42 @@ export default function Home() {
     onKlineUpdate: handleKlineUpdate,
     enabled: realtime
   });
+
+  /** Ghi kịch bản hiện tại vào lịch sử (từ tab Thiết lập): lấy thông tin từ analysis + preset, tạo lệnh từ setup đầu tiên */
+  const recordSetupHistory = useCallback(async () => {
+    if (!analysis) return;
+    try {
+      const setup = analysis.setups?.[0] ?? null;
+      const body = {
+        presetId,
+        params: setupParams,
+        symbol: analysis.context?.symbol ?? 'BTCUSDT',
+        timeframe: analysis.context?.timeframe ?? 'M15',
+        source: 'setup',
+        candleTime: analysis.context?.range?.to ? new Date(analysis.context.range.to).getTime() : undefined,
+        setupSnapshot: setup
+          ? {
+              name: setup.name,
+              direction: setup.direction,
+              entry: setup.entry,
+              risk: setup.risk,
+              targets: setup.targets ?? [],
+            }
+          : null,
+      };
+      const res = await fetch('/api/setup-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Ghi lịch sử thất bại');
+      setActiveTab('history');
+    } catch (e: any) {
+      console.error('Record setup history error:', e);
+      setError(e.message || 'Ghi lịch sử thất bại');
+    }
+  }, [analysis, presetId, setupParams]);
 
   const loadAnalysis = async (silent = false) => {
     try {
@@ -367,6 +432,12 @@ export default function Home() {
         >
           {t.tabs.setup}
         </button>
+        <button
+          className={`tab ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          {t.tabs.history}
+        </button>
       </div>
 
       <div className="tab-content">
@@ -383,6 +454,8 @@ export default function Home() {
             chartCandlesLoading={chartCandlesLoading}
             chartWsError={chartWsError}
             analysis={analysis}
+            autoRecordFromChart={autoRecordFromChart}
+            onAutoRecordFromChartChange={setAutoRecordFromChart}
           />
         )}
         {activeTab === 'setup' && (
@@ -392,9 +465,11 @@ export default function Home() {
             onPresetChange={setPresetId}
             onParamsChange={setSetupParams}
             onApply={() => loadAnalysis()}
+            onRecordHistory={recordSetupHistory}
             analysis={analysis}
           />
         )}
+        {activeTab === 'history' && <SetupHistoryTab />}
       </div>
     </div>
   );
@@ -407,6 +482,8 @@ function ChartTab({
   chartCandlesLoading,
   chartWsError,
   analysis,
+  autoRecordFromChart,
+  onAutoRecordFromChartChange,
 }: {
   candles: Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>;
   candleStatus: 'forming' | 'closed';
@@ -414,6 +491,8 @@ function ChartTab({
   chartCandlesLoading: boolean;
   chartWsError: string | null;
   analysis: any;
+  autoRecordFromChart?: boolean;
+  onAutoRecordFromChartChange?: (v: boolean) => void;
 }) {
   const t = translations;
   if (chartCandlesLoading && candles.length === 0) {
@@ -437,6 +516,17 @@ function ChartTab({
         <div style={{ marginBottom: '12px', padding: '8px 12px', background: 'rgba(239,68,68,0.15)', borderRadius: '6px', color: '#ef4444', fontSize: '14px' }}>
           WS: {chartWsError}
         </div>
+      )}
+      {onAutoRecordFromChartChange && (
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer', fontSize: '14px', color: '#888' }}>
+          <input
+            type="checkbox"
+            checked={!!autoRecordFromChart}
+            onChange={(e) => onAutoRecordFromChartChange(e.target.checked)}
+            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+          />
+          <span>Tự ghi vào lịch sử khi nến đóng (tạo lệnh từ kịch bản đầu tiên)</span>
+        </label>
       )}
       <RealtimeChart
         candles={candles}

@@ -39,3 +39,6 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Lịch sử áp dụng kịch bản (có thể xuất JSON từ tab Lịch sử)
+apps/web/data/

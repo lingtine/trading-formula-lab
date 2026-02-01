@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 /** Lệnh ảo: PLANNED (chưa chạm entry), OPEN (đã khớp), CLOSED (TP/SL), EXPIRED (hết hạn) */
 export interface VirtualOrder {
@@ -37,6 +37,14 @@ const STATE_LABEL: Record<string, string> = {
   EXPIRED: 'Hết hạn',
 };
 
+const numCellStyle: React.CSSProperties = {
+  padding: '10px',
+  fontFamily: 'monospace',
+  fontSize: '12px',
+  color: '#aaa',
+  fontVariantNumeric: 'tabular-nums',
+};
+
 function OrderTable({
   orders,
   onDelete,
@@ -65,23 +73,23 @@ function OrderTable({
       <tbody>
         {orders.map((o) => (
           <tr key={o.id} style={{ borderBottom: '1px solid #1f1f1f' }}>
-            <td style={{ padding: '10px', color: '#ccc', whiteSpace: 'nowrap' }}>
+            <td style={{ padding: '10px', color: '#ccc', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
               {new Date(o.created_at).toLocaleString('vi-VN')}
             </td>
             <td style={{ padding: '10px', color: '#aaa' }}>{o.symbol} / {o.tf}</td>
-            <td style={{ padding: '10px', color: '#ccc' }}>{o.setup_name}</td>
+            <td style={{ padding: '10px', color: '#ccc', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={o.setup_name}>{o.setup_name}</td>
             <td style={{ padding: '10px' }}>
               <span className={`badge ${o.side === 'BUY' ? 'bullish' : 'bearish'}`}>
                 {o.side === 'BUY' ? 'MUA' : 'BÁN'}
               </span>
             </td>
-            <td style={{ padding: '10px', fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>
+            <td style={numCellStyle}>
               {o.entry_zone_low.toFixed(2)} – {o.entry_zone_high.toFixed(2)}
             </td>
-            <td style={{ padding: '10px', fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>
+            <td style={numCellStyle}>
               {o.entry_fill_price != null ? o.entry_fill_price.toFixed(2) : '—'}
             </td>
-            <td style={{ padding: '10px', fontFamily: 'monospace', fontSize: '12px', color: '#aaa' }}>
+            <td style={numCellStyle}>
               SL {o.stop_loss.toFixed(2)} / TP {o.targets.slice(0, 2).map((t) => t.toFixed(2)).join(', ')}
             </td>
             <td style={{ padding: '10px' }}>
@@ -93,7 +101,7 @@ function OrderTable({
                 {STATE_LABEL[o.state] ?? o.state}
               </span>
             </td>
-            <td style={{ padding: '10px', fontSize: '12px', color: '#888' }}>
+            <td style={{ padding: '10px', fontSize: '12px', color: '#888', fontVariantNumeric: 'tabular-nums' }}>
               {o.close_reason != null && (
                 <span>
                   {o.close_reason}
@@ -106,7 +114,12 @@ function OrderTable({
               <button
                 type="button"
                 disabled={deletingId === o.id}
-                onClick={() => onDelete(o.id)}
+                aria-label={`Xóa lệnh ${o.id}`}
+                onClick={() => {
+                  if (window.confirm('Bạn có chắc muốn xóa lệnh này?')) {
+                    onDelete(o.id);
+                  }
+                }}
                 style={{
                   padding: '4px 10px',
                   background: 'rgba(239,68,68,0.15)',
@@ -182,7 +195,7 @@ export function SetupHistoryTab() {
   }, [orders]);
 
   if (loading) {
-    return <div className="loading">Đang tải lệnh ảo...</div>;
+    return <div className="loading">Đang tải lệnh ảo…</div>;
   }
 
   const planned = orders.filter((o) => o.state === 'PLANNED');

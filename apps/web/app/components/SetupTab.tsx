@@ -134,7 +134,7 @@ export function SetupTab({
   }, [presetId, setupParams]);
 
   if (loading) {
-    return <div className="loading">Đang tải cấu hình...</div>;
+    return <div className="loading">Đang tải cấu hình…</div>;
   }
 
   const hasResult = analysis?.diagnostics?.params != null;

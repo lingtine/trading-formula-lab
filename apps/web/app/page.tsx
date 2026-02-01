@@ -372,7 +372,7 @@ export default function Home() {
   }
 
   return (
-    <div className="container">
+    <div className="container" id="main-content" tabIndex={-1}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '16px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '600', margin: 0 }}>
           Phân tích SMC - {analysis.context.symbol}
@@ -394,15 +394,20 @@ export default function Home() {
             </span>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              background: wsConnected ? '#10b981' : realtime ? '#ef4444' : '#6b7280',
-              animation: wsConnected ? 'pulse 2s infinite' : 'none'
-            }} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <div
+              className={wsConnected ? 'pulse-indicator' : ''}
+              style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                background: wsConnected ? '#10b981' : realtime ? '#ef4444' : '#6b7280',
+                animation: wsConnected ? 'pulse 2s infinite' : 'none',
+              }}
+              aria-hidden
+            />
+            <label htmlFor="realtime-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input
+                id="realtime-checkbox"
                 type="checkbox"
                 checked={realtime}
                 onChange={(e) => {
@@ -411,6 +416,7 @@ export default function Home() {
                     setNewCandleReceived(false);
                   }
                 }}
+                aria-label="Bật hoặc tắt cập nhật thời gian thực"
                 style={{ width: '18px', height: '18px', cursor: 'pointer' }}
               />
               <span style={{ fontSize: '14px', color: realtime ? '#4a9eff' : '#888' }}>
@@ -424,7 +430,9 @@ export default function Home() {
             </span>
           )}
           <button
+            type="button"
             onClick={() => loadAnalysis()}
+            aria-label="Làm mới phân tích"
             style={{
               padding: '8px 16px',
               background: '#2a2a2a',
@@ -440,50 +448,76 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="tabs">
+      <div className="tabs" role="tablist" aria-label="Các tab phân tích">
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'bias'}
+          aria-controls="tab-panel-bias"
+          id="tab-bias"
           className={`tab ${activeTab === 'bias' ? 'active' : ''}`}
           onClick={() => setActiveTab('bias')}
         >
           {t.tabs.bias}
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'liquidity'}
           className={`tab ${activeTab === 'liquidity' ? 'active' : ''}`}
           onClick={() => setActiveTab('liquidity')}
         >
           {t.tabs.liquidity}
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'poi'}
           className={`tab ${activeTab === 'poi' ? 'active' : ''}`}
           onClick={() => setActiveTab('poi')}
         >
           {t.tabs.poi}
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'setups'}
           className={`tab ${activeTab === 'setups' ? 'active' : ''}`}
           onClick={() => setActiveTab('setups')}
         >
           {t.tabs.setups}
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'method'}
           className={`tab ${activeTab === 'method' ? 'active' : ''}`}
           onClick={() => setActiveTab('method')}
         >
           {t.tabs.method}
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'chart'}
           className={`tab ${activeTab === 'chart' ? 'active' : ''}`}
           onClick={() => setActiveTab('chart')}
         >
           {t.tabs.chart}
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'setup'}
           className={`tab ${activeTab === 'setup' ? 'active' : ''}`}
           onClick={() => setActiveTab('setup')}
         >
           {t.tabs.setup}
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'history'}
           className={`tab ${activeTab === 'history' ? 'active' : ''}`}
           onClick={() => setActiveTab('history')}
         >
@@ -491,7 +525,7 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="tab-content">
+      <div className="tab-content" role="tabpanel" id="tab-panel-content" aria-labelledby="tab-bias">
         {activeTab === 'bias' && <BiasTab summary={analysis.summary} t={t.bias} />}
         {activeTab === 'liquidity' && <LiquidityTab levels={analysis.levels} signals={analysis.signals} t={t.liquidity} />}
         {activeTab === 'poi' && <POITab poi={analysis.poi} t={t.poi} />}
@@ -850,7 +884,7 @@ function SetupsTab({
                           fontWeight: '600',
                         }}
                       >
-                        {creatingId === (setup.id ?? setup.name) ? 'Đang tạo...' : 'Tạo lệnh'}
+                        {creatingId === (setup.id ?? setup.name) ? 'Đang tạo…' : 'Tạo lệnh'}
                       </button>
                     )}
                   </div>

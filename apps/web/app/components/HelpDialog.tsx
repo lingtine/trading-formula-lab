@@ -1,19 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface HelpDialogProps {
   title: string;
   content: string;
 }
 
+const TITLE_ID = 'help-dialog-title';
+
 export function HelpDialog({ title, content }: HelpDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    closeButtonRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen]);
 
   if (!isOpen) {
     return (
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
+        aria-label="Hướng dẫn"
         style={{
           padding: '6px 12px',
           background: '#2a2a2a',
@@ -25,18 +40,26 @@ export function HelpDialog({ title, content }: HelpDialogProps) {
           fontWeight: '500',
           marginLeft: '12px',
         }}
-        title="Hướng dẫn"
       >
-        ❓ Hướng dẫn
+        <span aria-hidden>❓</span> Hướng dẫn
       </button>
     );
   }
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay: click to close */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Đóng hộp thoại"
         onClick={() => setIsOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsOpen(false);
+          }
+        }}
         style={{
           position: 'fixed',
           top: 0,
@@ -53,7 +76,11 @@ export function HelpDialog({ title, content }: HelpDialogProps) {
       >
         {/* Dialog */}
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={TITLE_ID}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
           style={{
             background: '#1a1a1a',
             border: '1px solid #3a3a3a',
@@ -62,6 +89,7 @@ export function HelpDialog({ title, content }: HelpDialogProps) {
             width: '100%',
             maxHeight: '90vh',
             overflow: 'auto',
+            overscrollBehavior: 'contain',
             zIndex: 1001,
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
           }}
@@ -76,11 +104,14 @@ export function HelpDialog({ title, content }: HelpDialogProps) {
               alignItems: 'center',
             }}
           >
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#4a9eff' }}>
+            <h2 id={TITLE_ID} style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#4a9eff' }}>
               {title}
             </h2>
             <button
+              ref={closeButtonRef}
+              type="button"
               onClick={() => setIsOpen(false)}
+              aria-label="Đóng"
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -95,7 +126,7 @@ export function HelpDialog({ title, content }: HelpDialogProps) {
                 justifyContent: 'center',
               }}
             >
-              ×
+              <span aria-hidden>×</span>
             </button>
           </div>
 

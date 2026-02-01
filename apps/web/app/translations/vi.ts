@@ -1,7 +1,7 @@
 export const translations = {
   // Common
   common: {
-    loading: 'Đang tải phân tích SMC...',
+    loading: 'Đang tải phân tích SMC…',
     error: 'Lỗi',
     retry: 'Thử lại',
     noData: 'Không có dữ liệu',
